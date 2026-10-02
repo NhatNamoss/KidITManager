@@ -19,11 +19,15 @@ const frontendBuildPath = path.join(__dirname, '../dist');
 app.use(express.static(frontendBuildPath));
 
 const pool = mysql.createPool({
-  host: 'onehost-wphn072607.000nethost.com',
-  user: 'tjginuoehosting_kidit',
-  password: 'Bakiet001234!@#',
-  database: 'tjginuoehosting_kidit',
-  port: 3306,
+  host: 'gateway01.ap-northeast-1.prod.aws.tidbcloud.com',
+  user: 'rQbjBTXsQq3GSBj.root',
+  password: 'BMDaBrCWt1BsmQUh',
+  database: 'kidit',
+  port: 4000,
+  ssl: {
+    minVersion: 'TLSv1.2',
+    rejectUnauthorized: true
+  },
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
