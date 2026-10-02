@@ -1,36 +1,75 @@
-const express = require('express');
-const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import mysql from 'mysql2';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+// Vercel serverless functions don't need app.listen()
+// const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
 // Serve static files from the React frontend app
-const frontendBuildPath = path.join(__dirname, '../frontend/dist');
+const frontendBuildPath = path.join(__dirname, '../dist');
 app.use(express.static(frontendBuildPath));
 
-const fs = require('fs');
-let dbFolder = process.env.RENDER_DISK_PATH || __dirname;
-if (process.env.RENDER_DISK_PATH) {
-  try {
-    if (!fs.existsSync(dbFolder)) {
-      fs.mkdirSync(dbFolder, { recursive: true });
+const pool = mysql.createPool({
+  host: 'onehost-wphn072607.000nethost.com',
+  user: 'tjginuoehosting_kidit',
+  password: 'Bakiet001234!@#',
+  database: 'tjginuoehosting_kidit',
+  port: 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+const db = {
+  run: (sql, params, callback) => {
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
     }
-  } catch (err) {
-    console.error('Không thể tạo thư mục RENDER_DISK_PATH, fallback về __dirname:', err.message);
-    dbFolder = __dirname;
-  }
-}
-const dbPath = path.join(dbFolder, 'kidit.db');
-const db = new sqlite3.Database(dbPath, (err) => {
+    pool.query(sql, params, (err, results) => {
+      if (err && !callback) console.error("Lỗi db.run:", err.message, sql);
+      if (callback) {
+        const context = { lastID: results ? results.insertId : null };
+        callback.call(context, err);
+      }
+    });
+  },
+  all: (sql, params, callback) => {
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
+    }
+    pool.query(sql, params, (err, results) => {
+      if (callback) callback(err, results);
+    });
+  },
+  get: (sql, params, callback) => {
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
+    }
+    pool.query(sql, params, (err, results) => {
+      if (callback) callback(err, results ? results[0] : null);
+    });
+  },
+  serialize: (cb) => cb()
+};
+
+pool.getConnection((err, conn) => {
   if (err) {
-    console.error('Lỗi khi kết nối database:', err.message);
+    console.error('Lỗi khi kết nối MySQL:', err.message);
   } else {
-    console.log('Đã kết nối với SQLite database.');
+    console.log('Đã kết nối với MySQL database.');
+    conn.release();
     initDb();
   }
 });
@@ -38,7 +77,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 function initDb() {
   db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS students (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id INT AUTO_INCREMENT PRIMARY KEY,
       name TEXT NOT NULL,
       phone TEXT,
       parentName TEXT,
@@ -47,7 +86,7 @@ function initDb() {
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS classes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id INT AUTO_INCREMENT PRIMARY KEY,
       name TEXT NOT NULL,
       teacher TEXT,
       ta TEXT,
@@ -61,7 +100,7 @@ function initDb() {
     });
 
     db.run(`CREATE TABLE IF NOT EXISTS teachers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id INT AUTO_INCREMENT PRIMARY KEY,
       name TEXT NOT NULL,
       role INTEGER NOT NULL,
       phone TEXT,
@@ -69,7 +108,7 @@ function initDb() {
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS class_students (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id INT AUTO_INCREMENT PRIMARY KEY,
       class_id INTEGER,
       student_id INTEGER,
       enrolledAt DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -79,30 +118,30 @@ function initDb() {
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS attendance (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id INT AUTO_INCREMENT PRIMARY KEY,
       class_id INTEGER,
       student_id INTEGER,
-      date TEXT,
+      date VARCHAR(255),
       status TEXT,
       FOREIGN KEY (class_id) REFERENCES classes(id),
       FOREIGN KEY (student_id) REFERENCES students(id),
       UNIQUE(class_id, student_id, date)
     )`);
 
-    db.run(`DROP TABLE IF EXISTS teacher_attendance`);
+    // db.run(`DROP TABLE IF EXISTS teacher_attendance`);
     db.run(`CREATE TABLE IF NOT EXISTS teacher_attendance (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id INT AUTO_INCREMENT PRIMARY KEY,
       class_id INTEGER,
       teacher_name TEXT,
-      role TEXT,
-      date TEXT,
+      role VARCHAR(255),
+      date VARCHAR(255),
       status TEXT,
       FOREIGN KEY (class_id) REFERENCES classes(id),
       UNIQUE(class_id, role, date)
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS invoices (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id INT AUTO_INCREMENT PRIMARY KEY,
       invoice_code TEXT UNIQUE,
       student_id INTEGER,
       amount INTEGER,
@@ -275,7 +314,7 @@ app.get('/api/classes/:id/attendance', (req, res) => {
 app.post('/api/classes/:id/attendance', (req, res) => {
   const { date, student_id, status } = req.body;
   db.run(`INSERT INTO attendance (class_id, student_id, date, status) VALUES (?, ?, ?, ?) 
-          ON CONFLICT(class_id, student_id, date) DO UPDATE SET status = excluded.status`,
+          ON DUPLICATE KEY UPDATE status = VALUES(status)`,
     [req.params.id, student_id, date, status],
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
@@ -296,7 +335,7 @@ app.get('/api/classes/:id/teacher-attendance', (req, res) => {
 app.post('/api/classes/:id/teacher-attendance', (req, res) => {
   const { date, teacher_name, role, status } = req.body;
   db.run(`INSERT INTO teacher_attendance (class_id, teacher_name, role, date, status) VALUES (?, ?, ?, ?, ?) 
-          ON CONFLICT(class_id, role, date) DO UPDATE SET teacher_name = excluded.teacher_name, status = excluded.status`,
+          ON DUPLICATE KEY UPDATE teacher_name = VALUES(teacher_name), status = VALUES(status)`,
     [req.params.id, teacher_name, role, date, status],
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
@@ -328,10 +367,16 @@ app.post('/api/invoices', (req, res) => {
 });
 
 // Anything that doesn't match the API routes should be served the index.html for SPA routing
+// Notice: Vercel routes will handle SPA fallback via vercel.json, but keeping this for local dev
 app.use((req, res) => {
   res.sendFile(path.join(frontendBuildPath, 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Server đang chạy tại http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server đang chạy tại http://localhost:${PORT}`);
+  });
+}
+
+export default app;
