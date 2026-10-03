@@ -94,3 +94,39 @@
 .bg-orange { background-color: #f97316; }
 .bg-pink { background-color: #ec4899; }
 .bg-teal { background-color: #14b8a6; }
+
+/* ============ MOBILE ============ */
+@media (max-width: 768px) {
+  .schedule-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .schedule-fixed-grid {
+    grid-template-columns: 80px repeat(7, minmax(110px, 1fr));
+    grid-auto-rows: minmax(90px, auto);
+  }
+
+  .grid-header-cell {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.75rem;
+  }
+
+  .grid-time-cell {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.75rem;
+  }
+
+  .block-title {
+    font-size: 0.75rem;
+  }
+
+  .block-teacher,
+  .block-detail {
+    font-size: 0.65rem;
+  }
+
+  .class-block {
+    padding: 0.5rem;
+  }
+}
