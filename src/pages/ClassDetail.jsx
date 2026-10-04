@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Users, UserPlus, CheckCircle, XCircle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Users, UserPlus, CheckCircle, XCircle, ArrowLeft, RefreshCw, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import './ClassDetail.css';
 
@@ -77,6 +77,20 @@ export function ClassDetail() {
     fetchAttendance();
     setActiveOverride(null); // Reset override state when date changes
   }, [id, attendanceDate]);
+
+  const handleRemoveStudent = async (studentId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa học sinh này khỏi lớp?')) return;
+    try {
+      const res = await fetch(`/api/classes/${id}/students/${studentId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        await fetchData();
+      }
+    } catch (error) {
+      console.error('Failed to remove student:', error);
+    }
+  };
 
   const handleEnroll = async (e) => {
     e.preventDefault();
@@ -253,12 +267,21 @@ export function ClassDetail() {
           <h2 className="text-h2 mb-4">Danh sách Học sinh ({enrolledStudents.length}/{classInfo.capacity})</h2>
           <div className="enrolled-list">
             {enrolledStudents.map(student => (
-              <div key={student.id} className="enrolled-item">
-                <div className="user-avatar-sm">{student.name.charAt(0)}</div>
-                <div className="enrolled-info">
-                  <p className="font-medium">{student.name}</p>
-                  <p className="text-small">{student.phone || 'Chưa cập nhật SĐT'}</p>
+              <div key={student.id} className="enrolled-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="user-avatar-sm">{student.name.charAt(0)}</div>
+                  <div className="enrolled-info">
+                    <p className="font-medium">{student.name}</p>
+                    <p className="text-small">{student.phone || 'Chưa cập nhật Ngày sinh'}</p>
+                  </div>
                 </div>
+                <button 
+                  className="text-danger hover:text-danger-dark p-2" 
+                  onClick={() => handleRemoveStudent(student.id)}
+                  title="Xóa khỏi lớp"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             ))}
             {enrolledStudents.length === 0 && <p className="text-muted text-sm">Chưa có học sinh.</p>}

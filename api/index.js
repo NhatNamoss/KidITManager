@@ -306,6 +306,16 @@ app.post('/api/classes/:id/students', (req, res) => {
   );
 });
 
+app.delete('/api/classes/:id/students/:student_id', (req, res) => {
+  db.run(`DELETE FROM class_students WHERE class_id = ? AND student_id = ?`,
+    [req.params.id, req.params.student_id],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true });
+    }
+  );
+});
+
 // ---------------- ATTENDANCE ----------------
 app.get('/api/classes/:id/attendance', (req, res) => {
   const { date } = req.query; // YYYY-MM-DD

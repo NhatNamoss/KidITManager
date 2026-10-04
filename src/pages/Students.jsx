@@ -91,7 +91,7 @@ export function Students() {
         <div className="table-actions">
           <div className="search-box">
             <Search size={18} className="text-muted" />
-            <input type="text" placeholder="Tìm kiếm theo tên hoặc SĐT..." className="table-search-input" />
+            <input type="text" placeholder="Tìm kiếm theo tên hoặc Ngày sinh..." className="table-search-input" />
           </div>
           <div className="filter-actions">
             <Button variant="secondary" size="sm">Bộ lọc</Button>
@@ -104,7 +104,7 @@ export function Students() {
             <tr>
               <th>ID</th>
               <th>Họ và Tên</th>
-              <th>SĐT Học sinh</th>
+              <th>Ngày sinh</th>
               <th>Phụ huynh</th>
               <th>SĐT Phụ huynh</th>
               <th>Ngày Đăng ký</th>
@@ -146,7 +146,7 @@ export function Students() {
                 <input required type="text" name="name" value={formData.name} onChange={handleInputChange} className="form-input" />
               </div>
               <div className="form-group">
-                <label>SĐT Học sinh</label>
+                <label>Ngày sinh</label>
                 <input type="text" name="phone" value={formData.phone} onChange={handleInputChange} className="form-input" />
               </div>
               <div className="form-group">
