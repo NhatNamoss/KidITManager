@@ -23,16 +23,13 @@ export function validateSession(body) {
   if (!Array.isArray(staff) || staff.length > 20 || (status === 'completed' && !staff.length))
     throw new InputError('Buổi đã dạy cần ít nhất một người thực tế đứng lớp.');
   const ids = new Set();
-  const minutes = t => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
-  const duration = minutes(end_time) - minutes(start_time);
   for (const row of staff) {
     if (!Number.isSafeInteger(row.teacher_id) || row.teacher_id < 1 || ids.has(row.teacher_id))
       throw new InputError('Mỗi nhân sự chỉ được ghi một lần trong một buổi.');
     ids.add(row.teacher_id);
-    if (!['teacher', 'ta'].includes(row.role) || !Number.isInteger(row.minutes) || row.minutes < 1 || row.minutes > duration)
-      throw new InputError('Vai trò hoặc số phút công không hợp lệ; số phút không được vượt thời lượng buổi.');
+    if (!['teacher', 'ta'].includes(row.role)) throw new InputError('Vai trò trong buổi dạy không hợp lệ.');
   }
-  return { date, start_time, end_time, status, staff, notes, version };
+  return { date, start_time, end_time, status, staff: staff.map(({ teacher_id, role }) => ({ teacher_id, role })), notes, version };
 }
 
 export function monthRange(month) {

@@ -5,7 +5,7 @@ export function registerTeachingSessions(app, pool) {
   app.get('/api/classes/:id/sessions', async (req, res, next) => {
     try {
       const [rows] = await db.query('SELECT * FROM teaching_sessions WHERE class_id = ? ORDER BY date DESC, start_time DESC', [req.params.id]);
-      const [staff] = await db.query(`SELECT a.* FROM session_staff a JOIN teaching_sessions s ON a.session_id = s.id WHERE s.class_id = ?`, [req.params.id]);
+      const [staff] = await db.query(`SELECT a.id, a.session_id, a.teacher_id, a.teacher_name, a.role FROM session_staff a JOIN teaching_sessions s ON a.session_id = s.id WHERE s.class_id = ?`, [req.params.id]);
       res.json(rows.map(row => ({ ...row, staff: staff.filter(s => s.session_id === row.id) })));
     } catch (error) { next(error); }
   });
@@ -42,8 +42,9 @@ export function registerTeachingSessions(app, pool) {
         const [result] = await connection.query('INSERT INTO teaching_sessions (date,start_time,end_time,status,notes,class_id) VALUES (?,?,?,?,?,?)', [...values, req.params.id]);
         sessionId = result.insertId;
       }
-      for (const row of snapshots) await connection.query('INSERT INTO session_staff (session_id,teacher_id,teacher_name,role,minutes) VALUES (?,?,?,?,?)',
-        [sessionId, row.teacher_id, row.teacher_name, row.role, row.minutes]);
+      // Keep the legacy NOT NULL column compatible; work is counted by session, never by this value.
+      for (const row of snapshots) await connection.query('INSERT INTO session_staff (session_id,teacher_id,teacher_name,role,minutes) VALUES (?,?,?,?,0)',
+        [sessionId, row.teacher_id, row.teacher_name, row.role]);
       await connection.query('INSERT INTO session_revisions (session_id,payload) VALUES (?,?)', [sessionId, JSON.stringify({ ...input, staff: snapshots })]);
       await connection.commit();
       res.json({ id: Number(sessionId), success: true });
@@ -58,11 +59,11 @@ export function registerTeachingSessions(app, pool) {
   app.get('/api/payroll', async (req, res, next) => {
     try {
       const [from, to] = monthRange(req.query.month);
-      const [rows] = await db.query(`SELECT a.teacher_id, a.teacher_name, a.role, a.minutes, s.id AS session_id, s.class_id, c.name AS class_name, s.date, s.start_time, s.end_time, s.notes
+      const [rows] = await db.query(`SELECT a.teacher_id, a.teacher_name, a.role, 1 AS work_units, s.id AS session_id, s.class_id, c.name AS class_name, s.date, s.start_time, s.end_time, s.notes
         FROM session_staff a JOIN teaching_sessions s ON s.id=a.session_id JOIN classes c ON c.id=s.class_id
         WHERE s.status='completed' AND s.date>=? AND s.date<? ORDER BY s.date,s.start_time,a.teacher_name`, [from, to]);
       const [legacy] = await db.query(`SELECT a.*, c.name AS class_name FROM teacher_attendance a JOIN classes c ON c.id=a.class_id WHERE a.date>=? AND a.date<? ORDER BY a.date`, [from, to]);
-      res.json({ rows, legacy });
+      res.json({ basis: 'session', rows, legacy });
     } catch (error) { next(error); }
   });
 }

@@ -19,11 +19,13 @@ Không bật `INIT_DB` trên Vercel. Migration là bước riêng trước khi t
 1. Vào **Lớp học → Chi tiết → Ghi buổi dạy**.
 2. Nhập ngày, tháng, năm vào ba ô riêng, rồi chọn giờ bắt đầu và kết thúc. Phần điểm danh học sinh có ô chọn ngày có học, tháng và năm; ngày không nằm trong lịch lớp không xuất hiện. Lịch mặc định chỉ gợi ý giờ và nhân sự, có thể thay đổi cho từng buổi.
 3. Chọn người thực tế dạy. Mọi nhân sự đều có thể được chọn làm người dạy chính hoặc trợ giảng trong buổi đó, không bị khóa theo chức danh mặc định.
-4. Nếu chia ca, thêm từng người và nhập số phút công thực tế. Một người chỉ có một dòng trong cùng buổi; số phút không vượt thời lượng buổi. Các người cùng dạy có thể cùng nhận đủ thời lượng buổi.
+4. Chọn từng người thực tế dạy hoặc dạy thay. **Mỗi người được 1 công cho một buổi đã xác nhận**, tách theo vai trò dạy chính/trợ giảng. Một người chỉ có một dòng trong cùng buổi; không nhập phút hoặc giờ công.
 5. Chọn **Chưa xác nhận**, **Đã dạy, tính công**, hoặc **Đã hủy, không tính công**. Chỉ xác nhận sau giờ kết thúc theo giờ Việt Nam. Không hỗ trợ ca qua nửa đêm.
 6. Vào **Chấm công** để lọc tháng/nhân sự, đối chiếu từng buổi và xuất CSV mở bằng Excel.
 
-Số lượt dạy là số buổi người đó được ghi nhận, tách theo vai trò; người chia ca vẫn là một lượt và có số phút riêng. Chưa tự quy đổi thành tiền lương vì chưa có quy tắc đơn giá theo buổi/giờ/vai trò. CSV xuất chi tiết buổi theo bộ lọc hiện tại.
+Số công được tính hoàn toàn theo buổi, không phụ thuộc thời lượng: dạy hai buổi được hai công. Giờ bắt đầu/kết thúc chỉ để phân biệt ca, kiểm tra trùng lịch và xác nhận buổi đã kết thúc. Bảng công và CSV đều dùng cột **Số công (buổi)**, không có cột phút/giờ công. Chưa tự quy đổi thành tiền lương vì chưa có đơn giá theo buổi/vai trò.
+
+Database cũ được giữ tương thích, không cần migration: trường phút cũ không còn dùng để tính công. Mỗi dòng nhân sự trong buổi đã xác nhận được tính một công, kể cả dữ liệu đã lưu từ trước.
 
 Một lớp không được có hai buổi đang hiệu lực trùng giờ. Có thể sửa buổi đã lưu hoặc đổi trạng thái thành đã hủy; không xóa cứng công. Hai người cùng sửa một buổi sẽ nhận cảnh báo xung đột thay vì âm thầm ghi đè. Mỗi lần lưu có bản ghi trong `session_revisions`.
 
@@ -58,7 +60,7 @@ Không cần cấu hình mật khẩu ứng dụng hoặc khóa phiên đăng nh
 
 ## Kiểm tra tự động và giao diện
 
-- `npm test`: kiểm tra validation, dạy thay/chia ca, nhiều ca trong ngày, trùng giờ, trạng thái hủy, tổng hợp công, bản sửa xung đột, hoàn tác giao dịch và truy cập đọc/ghi không cần đăng nhập.
+- `npm test`: kiểm tra validation, dạy thay, nhiều ca trong ngày, trùng giờ, trạng thái hủy, tính công theo buổi không phụ thuộc thời lượng, bản sửa xung đột, hoàn tác giao dịch và truy cập đọc/ghi không cần đăng nhập.
 - Các test API dùng SQLite trong bộ nhớ với adapter giao diện MySQL. Chúng kiểm tra hành vi và giao dịch của route, chưa thay thế chạy migration và kiểm tra khóa đồng thời trên MySQL/TiDB thật.
 - `node scripts/test-server.js` + `npm run dev`: chạy giao diện dùng trực tiếp với dữ liệu giả trong bộ nhớ, không kết nối database thật. Dừng server fixture trước khi chạy API thật vì cùng dùng port 5000.
 - Báo cáo rà soát và các giới hạn còn lại: [docs/APP-REVIEW-2026-10-15.md](docs/APP-REVIEW-2026-10-15.md).

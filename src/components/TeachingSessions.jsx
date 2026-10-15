@@ -29,10 +29,9 @@ export function TeachingSessions({ classInfo }) {
     const initial = empty();
     const schedule = classInfo.schedule?.match(/\((\d{2}:\d{2}) - (\d{2}:\d{2})\)/);
     if (schedule) { initial.start_time = schedule[1]; initial.end_time = schedule[2]; }
-    const minutes = t => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
     for (const [role, name] of [['teacher', classInfo.teacher], ['ta', classInfo.ta]]) {
       const teacher = teachers.find(t => t.name === name);
-      if (teacher && !initial.staff.some(s => s.teacher_id === teacher.id)) initial.staff.push({ teacher_id: teacher.id, role, minutes: minutes(initial.end_time) - minutes(initial.start_time) });
+      if (teacher && !initial.staff.some(s => s.teacher_id === teacher.id)) initial.staff.push({ teacher_id: teacher.id, role });
     }
     setForm(initial); setError(''); setNotice('');
   };
@@ -58,24 +57,23 @@ export function TeachingSessions({ classInfo }) {
         <label>Kết thúc<input required type="time" className="form-input" value={form.end_time} onChange={e => change('end_time', e.target.value)} /></label>
         <label>Trạng thái<select className="form-input" value={form.status} onChange={e => change('status', e.target.value)}>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       </div>
-      <p className="text-muted mt-4">Có thể chọn bất kỳ nhân sự cho vai trò dạy chính hoặc trợ giảng. Nếu chia ca, nhập số phút thực tế của mỗi người.</p>
+      <p className="text-muted mt-4">Mỗi người được ghi nhận 1 công cho mỗi buổi đã dạy. Chọn người thực tế dạy và vai trò; giờ bắt đầu/kết thúc chỉ để xác định ca.</p>
       {form.staff.map((s, i) => <div className="staff-row" key={i}>
         <label>Người thực tế dạy<select required className="form-input" value={s.teacher_id || ''} onChange={e => changeStaff(i, 'teacher_id', Number(e.target.value))}><option value="">Chọn nhân sự</option>{teachers.map(t => <option key={t.id} value={t.id}>{t.name} (#{t.id})</option>)}</select></label>
         <label>Vai trò trong buổi<select className="form-input" value={s.role} onChange={e => changeStaff(i, 'role', e.target.value)}><option value="teacher">Dạy chính</option><option value="ta">Trợ giảng</option></select></label>
-        <label>Số phút công<input required type="number" min="1" max="1439" className="form-input" value={s.minutes} onChange={e => changeStaff(i, 'minutes', Number(e.target.value))} /></label>
         <Button type="button" variant="ghost" onClick={() => change('staff', form.staff.filter((_, index) => index !== i))}>Bỏ người</Button>
       </div>)}
-      <Button type="button" variant="secondary" onClick={() => change('staff', [...form.staff, { teacher_id: '', role: 'teacher', minutes: 120 }])}>Thêm người dạy / dạy thay</Button>
+      <Button type="button" variant="secondary" onClick={() => change('staff', [...form.staff, { teacher_id: '', role: 'teacher' }])}>Thêm người dạy / dạy thay</Button>
       {!teachers.length && <p className="text-muted">Hãy thêm nhân sự ở mục Giáo viên trước khi xác nhận công.</p>}
-      <label className="session-notes">Ghi chú dạy thay / chia ca<textarea className="form-input" maxLength="2000" rows="3" value={form.notes} onChange={e => change('notes', e.target.value)} /></label>
+      <label className="session-notes">Ghi chú buổi dạy / dạy thay<textarea className="form-input" maxLength="2000" rows="3" value={form.notes} onChange={e => change('notes', e.target.value)} /></label>
       <div className="flex gap-2"><Button type="submit" disabled={!form.date}>{saving ? 'Đang lưu...' : 'Lưu buổi dạy'}</Button><Button type="button" variant="ghost" onClick={() => setForm(null)}>Hủy chỉnh sửa</Button></div>
       </fieldset></form>}
     {loading ? <p role="status">Đang tải buổi dạy...</p> : sessions.length === 0 ? <p className="empty-message">Chưa ghi buổi dạy nào. Lịch phân công chỉ là gợi ý khi tạo buổi mới.</p> :
       <div className="session-list">{sessions.map(s => <article className="session-item" key={s.id}>
         <div><strong>{s.date.split('-').reverse().join('/')} · {s.start_time}–{s.end_time}</strong><p className="text-muted">{labels[s.status]}</p>
-          {s.staff.map(person => <p key={person.id}>{person.teacher_name} · {person.role === 'teacher' ? 'Dạy chính' : 'Trợ giảng'} · {person.minutes} phút</p>)}
+          {s.staff.map(person => <p key={person.id}>{person.teacher_name} · {person.role === 'teacher' ? 'Dạy chính' : 'Trợ giảng'} · {s.status === 'completed' ? '1 công (1 buổi)' : 'Chưa tính công'}</p>)}
           {s.notes && <p className="session-note-text text-muted">{s.notes}</p>}</div>
-        <Button variant="secondary" disabled={Boolean(form)} onClick={() => { setForm({ ...s, staff: s.staff.map(p => ({ teacher_id: p.teacher_id, role: p.role, minutes: p.minutes })) }); setError(''); setNotice(''); }}>Sửa / hủy buổi</Button>
+        <Button variant="secondary" disabled={Boolean(form)} onClick={() => { setForm({ ...s, staff: s.staff.map(p => ({ teacher_id: p.teacher_id, role: p.role })) }); setError(''); setNotice(''); }}>Sửa / hủy buổi</Button>
       </article>)}</div>}
   </section>;
 }

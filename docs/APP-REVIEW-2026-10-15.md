@@ -18,10 +18,10 @@ Bản ban đầu đáp ứng quản lý danh sách và lịch cơ bản, nhưng 
 | Yêu cầu sử dụng | Web và API sử dụng trực tiếp không đăng nhập | Giữ chế độ truy cập đầy đủ theo yêu cầu chủ ứng dụng; đã bỏ màn hình đăng nhập, middleware xác thực và nút đăng xuất. |
 | Yêu cầu sử dụng | Thông tin database nằm trong code | Theo yêu cầu chủ ứng dụng, khôi phục thông tin kết nối cũ trong `server/database-config.js`; API và migration dùng chung, không cần cấu hình `DB_*` trên Vercel. |
 | Cao | Bản dump và database được Git theo dõi | Bỏ theo dõi bảy file, giữ trên ổ đĩa; thêm chặn Git và gói triển khai Vercel. Các xóa trong Git index là có chủ đích. |
-| Cao | Công giáo viên chỉ có ngày và một dòng mỗi vai trò, có thể ghi đè giữa các ca | Tạo `teaching_sessions` và `session_staff`, lưu ngày/giờ, ID nhân sự, tên tại thời điểm lưu, vai trò theo buổi và số phút. Không ép người dạy theo phân công lớp. |
-| Cao | Chưa có bảng tổng hợp công đối chiếu lương | Thêm bảng công tháng, bộ lọc nhân sự, lượt/phút/giờ theo vai trò, chi tiết buổi, CSV. Chỉ tổng hợp trạng thái đã dạy. |
+| Cao | Công giáo viên chỉ có ngày và một dòng mỗi vai trò, có thể ghi đè giữa các ca | Tạo `teaching_sessions` và `session_staff`, lưu ngày/ca, ID nhân sự, tên tại thời điểm lưu và vai trò theo buổi. Không ép người dạy theo phân công lớp. |
+| Cao | Chưa có bảng tổng hợp công đối chiếu lương | Thêm bảng công tháng, bộ lọc nhân sự, số công theo buổi/vai trò, chi tiết buổi và CSV. Mỗi nhân sự có 1 công trong một buổi đã xác nhận; không quy đổi theo giờ. |
 | Cao | Hai người sửa cùng buổi có thể ghi đè | Kiểm tra `version`, trả 409 khi dữ liệu đã đổi. Lưu giao dịch và snapshot lịch sử cùng với công. |
-| Cao | Không kiểm tra đủ ngày, giờ, số phút, nhân sự trùng hoặc buổi trùng giờ | Validate trên API. Không xác nhận công tương lai hoặc buổi chưa kết thúc, không cộng công nháp/hủy, không cho một nhân sự xuất hiện hai lần trong buổi. |
+| Cao | Không kiểm tra đủ ngày, giờ, nhân sự trùng hoặc buổi trùng giờ | Validate trên API. Không xác nhận công tương lai hoặc buổi chưa kết thúc, không cộng công nháp/hủy, không cho một nhân sự xuất hiện hai lần trong buổi. |
 | Vừa | Dữ liệu điểm danh cũ thiếu giờ ca | Giữ dữ liệu, hiển thị riêng để đối chiếu. API ghi công cũ trả 410 và hướng dẫn dùng buổi dạy; không tự chuyển sang công mới. |
 | Vừa | Dashboard hiển thị % tăng trưởng, 96% chuyên cần và hoạt động giả | Bỏ nội dung mẫu; giữ số học sinh, số lớp, học phí đã thu từ API. Lịch hôm nay cập nhật theo phút, giờ Việt Nam. |
 | Vừa | Search lớp/học sinh/hóa đơn và bộ lọc hóa đơn chưa hoạt động | Nối với dữ liệu thực; thêm xuất danh sách học sinh ra CSV. Bỏ bộ lọc không có trường dữ liệu tương ứng. |
@@ -39,8 +39,8 @@ Nguồn của cảnh báo dependency: [React Router security advisory](https://g
 ## Quy tắc công đã áp dụng
 
 - Lịch lớp chỉ là gợi ý. Người dạy/trợ giảng thực tế được chọn cho mỗi buổi, có thể khác chức danh hoặc người được phân công.
-- Nhiều người cùng buổi được hỗ trợ; mỗi người có số phút thực tế. Số phút không vượt thời lượng buổi; không bắt tổng phút của cả nhóm bằng thời lượng vì có thể cùng dạy.
-- Số lượt dạy không tự coi là một ca đủ công; khi chia ca cần dựa vào phút/giờ và quy tắc tính lương của trung tâm.
+- Nhiều người cùng buổi được hỗ trợ; mỗi người được ghi nhận một công khi buổi đã xác nhận. Không có ô nhập phút/giờ công.
+- Số công bằng số buổi đã dạy, tách theo vai trò; thời lượng buổi không ảnh hưởng số công. Cột phút cũ chỉ được giữ để tương thích database, không còn tham gia tính toán hoặc xuất CSV.
 - Có thể có nhiều ca trong cùng ngày nhưng một lớp không được trùng giờ với chính nó nếu buổi chưa hủy.
 - Hủy bằng trạng thái và giữ lịch sử, không xóa cứng buổi dạy. Không có chuyển tiền hoặc tự chi lương.
 - Một lần lưu cập nhật buổi, các người dạy và lịch sử trong cùng giao dịch. Nếu một bước lỗi, toàn bộ thay đổi được hoàn tác.
@@ -50,7 +50,7 @@ Nguồn của cảnh báo dependency: [React Router security advisory](https://g
 
 | Kiểm tra | Kết quả |
 | --- | --- |
-| `npm test` | PASS: 5 test với nhiều assert, gồm ngày sai, giờ sai, phút vượt ca, trùng người, dạy thay, chia ca, ca cùng ngày, chặn giờ trùng, hủy buổi, công nháp, dữ liệu cũ, xung đột version, rollback, truy cập không đăng nhập và validation trên API production trước khi truy cập database. |
+| `npm test` | PASS: 8 test với nhiều assert, gồm ngày/giờ sai, trùng người, dạy thay, ca cùng ngày, chặn giờ trùng, hủy buổi, công nháp, dữ liệu cũ, xung đột version, rollback, truy cập không đăng nhập, ngày học theo lịch lớp và tính công theo buổi độc lập với thời lượng. |
 | `npm run lint` | PASS, không cảnh báo. |
 | `npm run build` | PASS, tạo bundle Vite. |
 | `npm audit` | PASS, 0 vulnerabilities sau cập nhật dependency. |
@@ -69,8 +69,8 @@ Nguồn của cảnh báo dependency: [React Router security advisory](https://g
 
 1. **Triển khai:** đẩy source mới và deploy lại; không cần biến môi trường database. Phần chấm công cần migration tạo bảng mới nếu chưa chạy.
 2. **Quyền sử dụng:** theo yêu cầu chủ ứng dụng, mọi người truy cập có đầy đủ quyền, không có tài khoản hoặc phân quyền. Lịch sử lưu nội dung thay đổi, không xác định danh tính cá nhân người sửa.
-3. **Chốt lương:** chưa có đơn giá, quy tắc chia ca, làm tròn, chốt tháng/khóa sổ, duyệt hoặc đánh dấu đã trả lương. Bảng hiện tại là sổ công để đối chiếu, không phải bảng thanh toán hoàn chỉnh.
-4. **Trùng người giữa các lớp:** đã chặn trùng buổi trong cùng lớp, chưa kiểm tra một người có công chồng giờ ở hai lớp khác nhau. Số phút chia ca chưa lưu thời điểm bắt đầu/kết thúc riêng của từng người.
+3. **Chốt lương:** đã thống nhất tính theo buổi; chưa có đơn giá theo buổi/vai trò, chốt tháng/khóa sổ, duyệt hoặc đánh dấu đã trả lương. Bảng hiện tại là sổ công để đối chiếu, không phải bảng thanh toán hoàn chỉnh.
+4. **Trùng người giữa các lớp:** đã chặn trùng buổi trong cùng lớp, chưa kiểm tra một người có công chồng ca ở hai lớp khác nhau.
 5. **Điểm danh học sinh:** vẫn theo ngày, chưa theo từng ca. Lịch sử lớp theo buổi không snapshot toàn bộ danh sách học sinh.
 6. **Ngày sinh:** dữ liệu cũ đang dùng cột `students.phone` để hiển thị ngày sinh. Giữ nguyên để tránh đổi nghĩa/xáo trộn dữ liệu; cần migration có đối chiếu nếu tách thành `birth_date` và số điện thoại thật.
 7. **Sĩ số:** bản thật có lớp vượt sĩ số cấu hình. Chưa tự bỏ học sinh hoặc sửa sĩ số; cần trung tâm đối chiếu danh sách.
