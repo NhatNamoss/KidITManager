@@ -7,8 +7,7 @@
 Yêu cầu Node.js 24 và database hiện có của ứng dụng.
 
 1. Chạy `npm ci`.
-2. Sao chép `.env.example` thành `.env`, điền thông tin database:
-   - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`.
+2. Thông tin kết nối database cũ đã nằm trong `server/database-config.js`, được API và script migration dùng chung. Không cần tạo `.env` hoặc cấu hình `DB_*` trên Vercel.
 3. Sao lưu database rồi chạy `npm run db:migrate` trên database thử nghiệm trước. Script chỉ tạo ba bảng mới, có thể chạy lại; không chuyển đổi hoặc xóa điểm danh cũ. Script yêu cầu các bảng hiện có như `classes`, `teachers`, `teacher_attendance` đã tồn tại.
 4. Mở hai terminal: chạy `npm run dev:api` và `npm run dev`.
 5. Vào địa chỉ Vite hiển thị để sử dụng trực tiếp. Theo yêu cầu của chủ ứng dụng, web và API không yêu cầu đăng nhập; người truy cập có thể xem và sửa dữ liệu.
@@ -32,8 +31,8 @@ Một lớp không được có hai buổi đang hiệu lực trùng giờ. Có 
 
 ## Đưa bản sửa lên Vercel
 
-1. Đổi mật khẩu database đã từng nằm trong source; cập nhật thông tin mới ở biến môi trường của Vercel và `.env` trên máy. Không dán mật khẩu vào source hoặc chat.
-2. Thêm năm biến môi trường database trong `.env.example` vào đúng môi trường Vercel cần triển khai. Không đặt tiền tố `VITE_` cho thông tin kết nối database.
+1. Thông tin kết nối nằm sẵn trong `server/database-config.js` theo yêu cầu chủ ứng dụng. Khi đổi database, sửa file này.
+2. Không cần thêm biến môi trường database trên Vercel. File cấu hình chỉ được import bởi code phía máy chủ, không đưa vào frontend.
 3. Sao lưu database và chạy migration trên đúng database bằng `npm run db:migrate`. Kiểm tra ba bảng `teaching_sessions`, `session_staff`, `session_revisions` được tạo thành công.
 4. Chạy `npm test`, `npm run lint`, `npm run build`, `npm audit`.
 5. Commit các thay đổi cần triển khai và đẩy lên repository liên kết với Vercel hoặc dùng quy trình deploy hiện có. Build command: `npm run build`; output: `dist`. Giữ `vercel.json` để `/api/*` về Express và các đường dẫn frontend về SPA.
@@ -41,7 +40,7 @@ Một lớp không được có hai buổi đang hiệu lực trùng giờ. Có 
 
 Không cần cấu hình mật khẩu ứng dụng hoặc khóa phiên đăng nhập.
 
-`git rm --cached` đã bỏ theo dõi các dump SQL, file `.db` và `sqlite.zip`; bản gốc vẫn ở máy. `.gitignore` và `.vercelignore` ngăn đưa các file đó vào những bản mới. Thao tác này không xóa dữ liệu hoặc mật khẩu khỏi các commit/deployment cũ; cần đổi mật khẩu, rà soát quyền truy cập repository và xử lý lịch sử riêng nếu cần.
+`git rm --cached` đã bỏ theo dõi các dump SQL, file `.db` và `sqlite.zip`; bản gốc vẫn ở máy. `.gitignore` và `.vercelignore` ngăn đưa các file đó vào những bản mới. Database từ xa vẫn được giữ nguyên.
 
 ## Kiểm tra tự động và giao diện
 

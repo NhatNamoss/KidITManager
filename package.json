@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:api": "node --env-file-if-exists=.env api/index.js",
-    "db:migrate": "node --env-file-if-exists=.env scripts/migrate.js",
+    "dev:api": "node api/index.js",
+    "db:migrate": "node scripts/migrate.js",
     "test": "node --test tests/*.test.js",
     "build": "vite build",
     "lint": "oxlint",

@@ -5,6 +5,7 @@ import { validDate } from '../server/session-domain.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import mysql from 'mysql2';
+import { databaseConfig } from '../server/database-config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,15 +31,7 @@ const frontendBuildPath = path.join(__dirname, '../dist');
 app.use(express.static(frontendBuildPath));
 
 const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME || 'kidit',
-  port: Number(process.env.DB_PORT || 4000),
-  ssl: {
-    minVersion: 'TLSv1.2',
-    rejectUnauthorized: true
-  },
+  ...databaseConfig,
   waitForConnections: true,
   connectionLimit: 3,
   connectTimeout: 10000,

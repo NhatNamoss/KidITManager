@@ -9,14 +9,14 @@ Bản ban đầu đáp ứng quản lý danh sách và lịch cơ bản, nhưng 
 - Đọc source frontend, API, cấu hình Vercel, schema SQL hiện có; chạy lint/build trước khi sửa.
 - Mở bản thật tại https://kid-it-manager-8k8k.vercel.app, xem tổng quan và danh sách/chi tiết lớp. Chỉ đọc dữ liệu, không tạo công/hóa đơn/học sinh thử trên bản thật.
 - Kiểm tra giao diện bản sửa với API fixture và SQLite trong bộ nhớ, tách khỏi database thật.
-- Không truy cập tài khoản Vercel/TiDB, không thay mật khẩu, không chạy migration hoặc kiểm thử ghi trên database production.
+- Cập nhật theo yêu cầu khôi phục kết nối trong code: đã kết nối database cũ, đọc được 8 lớp/49 học sinh và chạy migration tạo ba bảng chấm công mới. Không thay mật khẩu, không sửa dữ liệu lớp/học sinh hoặc ghi công thử vào database thật. Chưa thao tác tài khoản Vercel.
 
 ## Phát hiện và thay đổi
 
 | Mức | Vấn đề ban đầu | Xử lý trong source |
 | --- | --- | --- |
 | Yêu cầu sử dụng | Web và API sử dụng trực tiếp không đăng nhập | Giữ chế độ truy cập đầy đủ theo yêu cầu chủ ứng dụng; đã bỏ màn hình đăng nhập, middleware xác thực và nút đăng xuất. |
-| Nghiêm trọng | Thông tin database ghi trực tiếp trong API | Chuyển sang biến môi trường; thêm `.env.example`. Mật khẩu cũ vẫn phải đổi, lịch sử Git vẫn phải xử lý riêng. |
+| Yêu cầu sử dụng | Thông tin database nằm trong code | Theo yêu cầu chủ ứng dụng, khôi phục thông tin kết nối cũ trong `server/database-config.js`; API và migration dùng chung, không cần cấu hình `DB_*` trên Vercel. |
 | Cao | Bản dump và database được Git theo dõi | Bỏ theo dõi bảy file, giữ trên ổ đĩa; thêm chặn Git và gói triển khai Vercel. Các xóa trong Git index là có chủ đích. |
 | Cao | Công giáo viên chỉ có ngày và một dòng mỗi vai trò, có thể ghi đè giữa các ca | Tạo `teaching_sessions` và `session_staff`, lưu ngày/giờ, ID nhân sự, tên tại thời điểm lưu, vai trò theo buổi và số phút. Không ép người dạy theo phân công lớp. |
 | Cao | Chưa có bảng tổng hợp công đối chiếu lương | Thêm bảng công tháng, bộ lọc nhân sự, lượt/phút/giờ theo vai trò, chi tiết buổi, CSV. Chỉ tổng hợp trạng thái đã dạy. |
@@ -61,13 +61,13 @@ Nguồn của cảnh báo dependency: [React Router security advisory](https://g
 | Xuất CSV | Đã bấm nút xuất; dữ liệu xuất theo bộ lọc. Chưa mở file bằng Microsoft Excel để kiểm tra hiển thị. |
 | Mobile 390 × 844 | PASS ở màn bảng công: chiều rộng trang và scrollWidth cùng 390px, bảng cuộn trong khung, menu mở/điều hướng được. |
 | Hộp thoại mở lớp | PASS mở trên điện thoại và Escape đóng; native dialog tách phần nền khỏi luồng focus. |
-| MySQL/TiDB thật | CHƯA CHẠY migration hoặc thử khóa đồng thời; cần kiểm tra trên Preview/database thử nghiệm trước khi deploy production. |
+| MySQL/TiDB thật | Đã kết nối cấu hình cũ và chạy migration tạo bảng mới thành công. Chưa thử ghi công hoặc khóa đồng thời trên database thật. |
 
 Ảnh giao diện dùng dữ liệu kiểm thử: `screenshots/payroll-desktop.jpg`, `screenshots/payroll-mobile.jpg`.
 
 ## Các phần còn cần quyết định hoặc làm tiếp
 
-1. **Triển khai:** cấu hình biến môi trường, đổi credential cũ và chạy migration. Chưa làm các bước này trên tài khoản thật.
+1. **Triển khai:** đẩy source mới và deploy lại; không cần biến môi trường database. Phần chấm công cần migration tạo bảng mới nếu chưa chạy.
 2. **Quyền sử dụng:** theo yêu cầu chủ ứng dụng, mọi người truy cập có đầy đủ quyền, không có tài khoản hoặc phân quyền. Lịch sử lưu nội dung thay đổi, không xác định danh tính cá nhân người sửa.
 3. **Chốt lương:** chưa có đơn giá, quy tắc chia ca, làm tròn, chốt tháng/khóa sổ, duyệt hoặc đánh dấu đã trả lương. Bảng hiện tại là sổ công để đối chiếu, không phải bảng thanh toán hoàn chỉnh.
 4. **Trùng người giữa các lớp:** đã chặn trùng buổi trong cùng lớp, chưa kiểm tra một người có công chồng giờ ở hai lớp khác nhau. Số phút chia ca chưa lưu thời điểm bắt đầu/kết thúc riêng của từng người.

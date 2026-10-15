@@ -4,10 +4,6 @@ import assert from 'node:assert/strict';
 test('production API rejects invalid CRUD payloads before reaching database', async t => {
   process.env.NODE_ENV = 'production';
   process.env.INIT_DB = 'false';
-  process.env.DB_HOST = '127.0.0.1';
-  process.env.DB_PORT = '1';
-  process.env.DB_USER = 'fixture';
-  process.env.DB_PASSWORD = 'fixture-unused';
   delete process.env.APP_PASSWORD;
   delete process.env.SESSION_SECRET;
   const { default: app } = await import('../api/index.js');
