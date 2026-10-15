@@ -1,6 +1,5 @@
 import express from 'express';
 import { randomUUID } from 'node:crypto';
-import { registerAuth } from '../server/auth.js';
 import { registerTeachingSessions } from '../server/teaching-sessions.js';
 import { validDate } from '../server/session-domain.js';
 import path from 'path';
@@ -25,7 +24,6 @@ app.use('/api', (req, res, next) => {
   }
   next();
 });
-registerAuth(app);
 
 // Serve static files from the React frontend app
 const frontendBuildPath = path.join(__dirname, '../dist');

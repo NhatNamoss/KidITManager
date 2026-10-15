@@ -2,7 +2,7 @@
 
 ## Kết luận
 
-Bản ban đầu đáp ứng quản lý danh sách và lịch cơ bản, nhưng chưa phù hợp để dùng như sổ công chính thức: API thiếu đăng nhập, thông tin kết nối database nằm trong source, công chỉ định danh theo lớp/ngày/vai trò và dashboard có nội dung mẫu. Các lỗi ưu tiên và chức năng công mới đã được sửa trong source cục bộ. Bản Vercel chưa được cập nhật trong phiên này.
+Bản ban đầu đáp ứng quản lý danh sách và lịch cơ bản, nhưng còn thông tin kết nối database trong source, công chỉ định danh theo lớp/ngày/vai trò và dashboard có nội dung mẫu. Các lỗi ưu tiên và chức năng công mới đã được sửa trong source cục bộ. Theo yêu cầu bổ sung của chủ ứng dụng, đã bỏ phần đăng nhập: web và API dùng trực tiếp với đầy đủ quyền như trước. Bản Vercel chưa được cập nhật trong phiên này.
 
 ## Phạm vi thực hiện
 
@@ -15,7 +15,7 @@ Bản ban đầu đáp ứng quản lý danh sách và lịch cơ bản, nhưng 
 
 | Mức | Vấn đề ban đầu | Xử lý trong source |
 | --- | --- | --- |
-| Nghiêm trọng | API danh sách và API sửa dữ liệu không yêu cầu đăng nhập | Thêm màn hình đăng nhập và middleware bảo vệ API; cookie HttpOnly, SameSite Strict, Secure ở production, thời hạn 8 giờ. Thiếu cấu hình thì từ chối truy cập. |
+| Yêu cầu sử dụng | Web và API sử dụng trực tiếp không đăng nhập | Giữ chế độ truy cập đầy đủ theo yêu cầu chủ ứng dụng; đã bỏ màn hình đăng nhập, middleware xác thực và nút đăng xuất. |
 | Nghiêm trọng | Thông tin database ghi trực tiếp trong API | Chuyển sang biến môi trường; thêm `.env.example`. Mật khẩu cũ vẫn phải đổi, lịch sử Git vẫn phải xử lý riêng. |
 | Cao | Bản dump và database được Git theo dõi | Bỏ theo dõi bảy file, giữ trên ổ đĩa; thêm chặn Git và gói triển khai Vercel. Các xóa trong Git index là có chủ đích. |
 | Cao | Công giáo viên chỉ có ngày và một dòng mỗi vai trò, có thể ghi đè giữa các ca | Tạo `teaching_sessions` và `session_staff`, lưu ngày/giờ, ID nhân sự, tên tại thời điểm lưu, vai trò theo buổi và số phút. Không ép người dạy theo phân công lớp. |
@@ -25,7 +25,7 @@ Bản ban đầu đáp ứng quản lý danh sách và lịch cơ bản, nhưng 
 | Vừa | Dữ liệu điểm danh cũ thiếu giờ ca | Giữ dữ liệu, hiển thị riêng để đối chiếu. API ghi công cũ trả 410 và hướng dẫn dùng buổi dạy; không tự chuyển sang công mới. |
 | Vừa | Dashboard hiển thị % tăng trưởng, 96% chuyên cần và hoạt động giả | Bỏ nội dung mẫu; giữ số học sinh, số lớp, học phí đã thu từ API. Lịch hôm nay cập nhật theo phút, giờ Việt Nam. |
 | Vừa | Search lớp/học sinh/hóa đơn và bộ lọc hóa đơn chưa hoạt động | Nối với dữ liệu thực; thêm xuất danh sách học sinh ra CSV. Bỏ bộ lọc không có trường dữ liệu tương ứng. |
-| Vừa | Nút khóa học, cài đặt, phiếu chi và xóa học sinh chưa có nghiệp vụ | Bỏ khỏi luồng điều hướng hoặc bỏ điều khiển chưa hoạt động. Đường dẫn khóa học cũ có thông báo rõ. Đăng xuất đã có hành vi thật. |
+| Vừa | Nút khóa học, cài đặt, phiếu chi và xóa học sinh chưa có nghiệp vụ | Bỏ khỏi luồng điều hướng hoặc bỏ điều khiển chưa hoạt động. Đường dẫn khóa học cũ có thông báo rõ. Không hiển thị đăng xuất vì không có đăng nhập. |
 | Vừa | Chi tiết hóa đơn không hoạt động, tổng tiền có thể nối chuỗi | Có hộp thoại chi tiết, chuẩn hóa tiền thành số trước khi cộng, chặn tiền âm/0 khi tạo. Mã hóa đơn dùng UUID. |
 | Vừa | Xuất lịch chỉ lấy lớp đầu tiên ở ô trùng ca và bỏ giờ ngoài danh sách cố định | Xuất toàn bộ tên lớp cùng ô, thêm các khung giờ có trong dữ liệu. Các ô lịch có thể mở lớp tương ứng. |
 | Vừa | Lỗi tải/lưu bị bỏ qua, dễ nhìn dữ liệu rỗng như dữ liệu thật | Thêm thông báo lỗi và tải lại cho các luồng đã sửa; API không trả chi tiết SQL/credential ra trình duyệt. |
@@ -50,11 +50,11 @@ Nguồn của cảnh báo dependency: [React Router security advisory](https://g
 
 | Kiểm tra | Kết quả |
 | --- | --- |
-| `npm test` | PASS: 6 test với nhiều assert, gồm ngày sai, giờ sai, phút vượt ca, trùng người, dạy thay, chia ca, ca cùng ngày, chặn giờ trùng, hủy buổi, công nháp, dữ liệu cũ, xung đột version, rollback và validation trên API production trước khi truy cập database. |
+| `npm test` | PASS: 5 test với nhiều assert, gồm ngày sai, giờ sai, phút vượt ca, trùng người, dạy thay, chia ca, ca cùng ngày, chặn giờ trùng, hủy buổi, công nháp, dữ liệu cũ, xung đột version, rollback, truy cập không đăng nhập và validation trên API production trước khi truy cập database. |
 | `npm run lint` | PASS, không cảnh báo. |
 | `npm run build` | PASS, tạo bundle Vite. |
 | `npm audit` | PASS, 0 vulnerabilities sau cập nhật dependency. |
-| Đăng nhập giao diện | PASS với tài khoản fixture; không dùng mật khẩu production. |
+| Truy cập không đăng nhập | Kiểm thử API fixture đọc danh sách, ghi buổi và tổng hợp công không cần cookie. |
 | Chọn người dạy thay trên giao diện | PASS: C thay A, B trợ giảng; bảng công nhận C/B, không cộng cho A. |
 | Bộ lọc nhân sự | PASS: chọn C chỉ hiển thị công của C. |
 | Sửa / hủy buổi trên giao diện | PASS: đổi sang đã hủy thì bảng công rỗng; xác nhận lại buổi quá khứ thì công xuất hiện trở lại. |
@@ -68,14 +68,14 @@ Nguồn của cảnh báo dependency: [React Router security advisory](https://g
 ## Các phần còn cần quyết định hoặc làm tiếp
 
 1. **Triển khai:** cấu hình biến môi trường, đổi credential cũ và chạy migration. Chưa làm các bước này trên tài khoản thật.
-2. **Phân quyền:** hiện dùng một mật khẩu quản lý chung. Chưa có tài khoản từng nhân sự hoặc phân quyền người ghi/người duyệt công. Lịch sử lưu nội dung thay đổi, chưa xác định danh tính cá nhân người sửa.
+2. **Quyền sử dụng:** theo yêu cầu chủ ứng dụng, mọi người truy cập có đầy đủ quyền, không có tài khoản hoặc phân quyền. Lịch sử lưu nội dung thay đổi, không xác định danh tính cá nhân người sửa.
 3. **Chốt lương:** chưa có đơn giá, quy tắc chia ca, làm tròn, chốt tháng/khóa sổ, duyệt hoặc đánh dấu đã trả lương. Bảng hiện tại là sổ công để đối chiếu, không phải bảng thanh toán hoàn chỉnh.
 4. **Trùng người giữa các lớp:** đã chặn trùng buổi trong cùng lớp, chưa kiểm tra một người có công chồng giờ ở hai lớp khác nhau. Số phút chia ca chưa lưu thời điểm bắt đầu/kết thúc riêng của từng người.
 5. **Điểm danh học sinh:** vẫn theo ngày, chưa theo từng ca. Lịch sử lớp theo buổi không snapshot toàn bộ danh sách học sinh.
 6. **Ngày sinh:** dữ liệu cũ đang dùng cột `students.phone` để hiển thị ngày sinh. Giữ nguyên để tránh đổi nghĩa/xáo trộn dữ liệu; cần migration có đối chiếu nếu tách thành `birth_date` và số điện thoại thật.
 7. **Sĩ số:** bản thật có lớp vượt sĩ số cấu hình. Chưa tự bỏ học sinh hoặc sửa sĩ số; cần trung tâm đối chiếu danh sách.
 8. **Học phí:** chưa có nghiệp vụ sửa trạng thái hóa đơn, thanh toán từng phần, hạn nợ tự động, khóa học hoặc phiếu chi hoàn chỉnh. Đã bỏ tab phiếu chi gây hiểu nhầm, chưa xây thêm kế toán ngoài phạm vi công giảng dạy.
-9. **Bảo mật vận hành:** giới hạn thử mật khẩu hiện ở bộ nhớ từng instance; Vercel nhiều instance cần rate limit tập trung hoặc tại tầng nền tảng. Backup tự động, giám sát lỗi và thu hồi từng phiên vẫn cần giải pháp vận hành.
+9. **Vận hành:** backup tự động và giám sát lỗi vẫn cần giải pháp vận hành. Chế độ không đăng nhập là lựa chọn sử dụng của chủ ứng dụng.
 10. **Kiểm thử:** chưa tuyên bố đã thử mọi nút CRUD trên database thật hoặc mọi kích thước màn hình; đã kiểm tra source các trang và tập trung kiểm thử tự động/UI vào phần mới và lỗi ưu tiên.
 
 ## Kiểm tra giao diện trong phạm vi thay đổi

@@ -5,14 +5,12 @@ import {
   Users, 
   GraduationCap, 
   CreditCard,
-  LogOut,
   Calendar,
   UserCheck,
   Menu,
   X
 } from 'lucide-react';
 import './MainLayout.css';
-import { api } from '../lib/api';
 
 export function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -68,15 +66,6 @@ export function MainLayout() {
           ))}
         </nav>
 
-        <div className="sidebar-footer">
-          <button className="nav-item text-danger" style={{ color: 'var(--color-danger)' }} onClick={async () => {
-            try { await api('/api/auth/logout', { method: 'POST' }); window.dispatchEvent(new Event('session-expired')); }
-            catch (error) { alert(error.message); }
-          }}>
-            <LogOut size={20} />
-            <span>Đăng xuất</span>
-          </button>
-        </div>
       </aside>
 
       {/* Main Content */}
@@ -87,13 +76,6 @@ export function MainLayout() {
           </button>
           <div className="header-search">
             <span className="font-medium">Quản lý trung tâm KidIT</span>
-          </div>
-          <div className="header-user">
-            <div className="user-avatar">A</div>
-            <div className="user-info">
-              <p className="user-name">Admin</p>
-              <p className="user-role">Quản lý</p>
-            </div>
           </div>
         </header>
 

@@ -1,10 +1,8 @@
 import { DatabaseSync } from 'node:sqlite';
 import express from 'express';
 import { registerTeachingSessions } from '../server/teaching-sessions.js';
-import { registerAuth } from '../server/auth.js';
 
-export const fixturePassword = 'local-fixture-password';
-export function createFixture({ auth = false } = {}) {
+export function createFixture() {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(`
     PRAGMA foreign_keys=ON;
@@ -34,7 +32,6 @@ export function createFixture({ auth = false } = {}) {
   };
   const pool = { promise: () => ({ query: connection.query, getConnection: async () => connection }) };
   const app = express(); app.use(express.json());
-  if (auth) registerAuth(app, { APP_PASSWORD: fixturePassword, SESSION_SECRET: 'local-fixture-secret-at-least-32-characters' });
   app.get('/api/classes', async (req, res) => res.json((await connection.query('SELECT * FROM classes'))[0]));
   app.get('/api/classes/:id', async (req, res) => res.json((await connection.query('SELECT * FROM classes WHERE id=?', [Number(req.params.id)]))[0][0]));
   app.get('/api/teachers', async (req, res) => res.json((await connection.query('SELECT * FROM teachers'))[0]));

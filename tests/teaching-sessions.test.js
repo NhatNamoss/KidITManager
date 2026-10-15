@@ -1,17 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createFixture, fixturePassword } from './fixture.js';
+import { createFixture } from './fixture.js';
 import { validateSession, monthRange, validDate } from '../server/session-domain.js';
-import { registerAuth } from '../server/auth.js';
-import express from 'express';
 
 const session = (patch = {}) => ({ date: '2026-10-01', start_time: '15:15', end_time: '17:15', status: 'completed', notes: 'Dạy thay', staff: [{ teacher_id: 3, role: 'teacher', minutes: 120 }], ...patch });
 async function serve(app, t) {
   const server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
   t.after(() => new Promise(resolve => server.close(resolve)));
-  return async (path, body, method = 'POST', cookie) => {
-    const response = await fetch(`http://127.0.0.1:${server.address().port}${path}`, { method, headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
-    return { status: response.status, data: await response.json(), cookie: response.headers.get('set-cookie')?.split(';')[0] };
+  return async (path, body, method = 'POST') => {
+    const response = await fetch(`http://127.0.0.1:${server.address().port}${path}`, { method, headers: { 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
+    return { status: response.status, data: await response.json() };
   };
 }
 
@@ -48,18 +46,9 @@ test('invalid teacher and audit write failure roll back the entire save', async 
   assert.equal(sqlite.prepare('SELECT count(*) AS n FROM session_staff').get().n, 0);
 });
 
-test('authentication blocks anonymous access and rejects tampered cookies', async t => {
-  const { app, sqlite } = createFixture({ auth: true }); t.after(() => sqlite.close()); const request = await serve(app, t);
-  assert.equal((await request('/api/classes', null, 'GET')).status, 401);
-  assert.equal((await request('/api/auth/login', { password: {} })).status, 401);
-  const login = await request('/api/auth/login', { password: fixturePassword }); assert.equal(login.status, 200); assert.ok(login.cookie);
-  assert.equal((await request('/api/classes', null, 'GET', login.cookie)).status, 200);
-  assert.equal((await request('/api/classes', null, 'GET', login.cookie + 'tampered')).status, 401);
-  const logout = await request('/api/auth/logout', {}, 'POST', login.cookie); assert.equal(logout.cookie, 'kidit_session=');
-});
-
-test('unconfigured authentication fails closed', async t => {
-  const app = express(); app.use(express.json()); registerAuth(app, {}); app.get('/api/private', (req, res) => res.json({ secret: true }));
-  const request = await serve(app, t); assert.equal((await request('/api/private', null, 'GET')).status, 503);
-  assert.equal((await request('/api/auth/session', null, 'GET')).data.configured, false);
+test('reading and recording teaching sessions requires no login or cookie', async t => {
+  const { app, sqlite } = createFixture(); t.after(() => sqlite.close()); const request = await serve(app, t);
+  assert.equal((await request('/api/classes', null, 'GET')).status, 200);
+  assert.equal((await request('/api/classes/1/sessions', session())).status, 200);
+  assert.equal((await request('/api/payroll?month=2026-10', null, 'GET')).data.rows.length, 1);
 });

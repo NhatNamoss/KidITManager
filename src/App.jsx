@@ -9,12 +9,11 @@ import { Teachers } from './pages/Teachers';
 import { Finance } from './pages/Finance';
 import { Schedule } from './pages/Schedule';
 import { Payroll } from './pages/Payroll';
-import { AuthGate } from './components/AuthGate';
 import './index.css';
 
 function App() {
   return (
-    <AuthGate><BrowserRouter>
+    <BrowserRouter>
       <Routes>
           <Route path="/" element={<MainLayout />}>
           <Route index element={<Dashboard />} />
@@ -29,7 +28,7 @@ function App() {
           <Route path="*" element={<div><h1 className="text-h1">Không tìm thấy trang</h1><a href="/">Về tổng quan</a></div>} />
         </Route>
       </Routes>
-    </BrowserRouter></AuthGate>
+    </BrowserRouter>
   );
 }
 

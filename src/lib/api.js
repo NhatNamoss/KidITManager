@@ -1,7 +1,6 @@
 export async function api(url, options) {
   const response = await fetch(url, options);
   const data = await response.json().catch(() => ({}));
-  if (response.status === 401) window.dispatchEvent(new Event('session-expired'));
   if (!response.ok) throw new Error(data.error || 'Không tải hoặc lưu được dữ liệu.');
   return data;
 }
