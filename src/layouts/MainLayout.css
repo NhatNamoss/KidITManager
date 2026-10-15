@@ -37,6 +37,8 @@
 }
 
 .sidebar-nav {
+  min-height: 0;
+  overflow-y: auto;
   padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
@@ -82,6 +84,7 @@
 
 /* Header */
 .top-header {
+  gap: .75rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -93,6 +96,7 @@
 }
 
 .header-search {
+  min-width: 0;
   flex: 1;
   max-width: 400px;
 }

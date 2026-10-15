@@ -8,9 +8,11 @@ import {
   Calendar,
   UserCheck,
   Menu,
-  X
+  X,
+  Wrench
 } from 'lucide-react';
 import './MainLayout.css';
+import { TimerIndicator } from '../components/CountdownTimer';
 
 export function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -32,6 +34,7 @@ export function MainLayout() {
     { path: '/classes', icon: GraduationCap, label: 'Lớp học' },
     { path: '/payroll', icon: UserCheck, label: 'Chấm công' },
     { path: '/finance', icon: CreditCard, label: 'Học phí' },
+    { path: '/tools', icon: Wrench, label: 'Công cụ hỗ trợ' },
   ];
 
   const closeSidebar = () => setSidebarOpen(false);
@@ -77,6 +80,7 @@ export function MainLayout() {
           <div className="header-search">
             <span className="font-medium">Quản lý trung tâm KidIT</span>
           </div>
+          <TimerIndicator />
         </header>
 
         <div className="page-wrapper animate-fade-in">

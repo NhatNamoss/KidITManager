@@ -1,0 +1,79 @@
+.teaching-tools [hidden] { display: none !important; }
+.tools-navigation { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.5rem 0; border-bottom: 1px solid var(--color-border); padding-bottom: .75rem; }
+.tools-navigation button { padding: .65rem 1rem; min-height: 44px; border-radius: .5rem; color: var(--color-text-main); font-size: .9rem; }
+.tools-navigation button[aria-pressed="true"] { background: var(--color-primary); color: white; }
+.tools-navigation button:hover:not([aria-pressed="true"]) { background: #e2e8f0; }
+.tools-panel { background: white; border: 1px solid var(--color-border); border-radius: .75rem; padding: 1.5rem; margin-bottom: 1.25rem; }
+.tool-section-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+.teaching-tools h2, .countdown-tool h2 { font-size: 1.35rem; font-weight: 650; margin-bottom: .4rem; }
+.tool-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.tool-error { padding: .75rem; background: #fef2f2; color: #991b1b; border-radius: .4rem; margin: .75rem 0; overflow-wrap: anywhere; }
+.tool-note { margin-top: 1rem; font-size: .875rem; color: var(--color-text-muted); }
+.tool-retry { color: inherit; text-decoration: underline; padding: .5rem; }
+.tool-count { flex-shrink: 0; padding: .35rem .6rem; background: #f1f5f9; border-radius: .3rem; font-size: .875rem; }
+.teaching-tools label, .timer-settings label { font-size: .875rem; }
+.teaching-tools .form-input, .timer-settings .form-input { width: 100%; min-width: 0; background: white; color: var(--color-text-main); }
+.roster-source { display: flex; align-items: end; gap: .75rem; margin: 1rem 0; flex-wrap: wrap; }
+.roster-source label { display: flex; flex-direction: column; gap: .35rem; flex: 1 1 240px; }
+.tool-roster-label { display: flex; flex-direction: column; gap: .5rem; }
+.tool-roster-label textarea { resize: vertical; min-height: 120px; }
+.roster-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: .5rem; }
+.roster-footer .btn { flex-shrink: 0; }
+.picked-name { min-height: 150px; display: grid; place-items: center; text-align: center; padding: 1.5rem; font-size: clamp(1.4rem, 4vw, 2.5rem); font-weight: 700; color: var(--color-primary-dark); overflow-wrap: anywhere; background: #f8fafc; border-radius: .5rem; margin: 1.25rem 0; }
+.tool-check, .timer-sound label { display: flex; align-items: center; gap: .5rem; min-height: 40px; }
+.tool-check input, .timer-sound input { width: 18px; height: 18px; accent-color: var(--color-primary); }
+.name-picker > .tool-actions { margin-top: 1rem; }
+.picker-history { margin-top: 1.5rem; }
+.picker-history ol, .group-result ol, .score-team ul { padding-left: 1.5rem; margin-top: .5rem; }
+.picker-history summary, .score-team summary { cursor: pointer; font-size: .875rem; }
+.group-settings { display: flex; align-items: end; flex-wrap: wrap; gap: .75rem; margin: 1rem 0; }
+.group-settings label { display: flex; flex-direction: column; gap: .35rem; width: 130px; }
+.group-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 1rem; margin: 1.5rem 0; }
+.group-result { background: #f8fafc; border: 1px solid var(--color-border); border-radius: .5rem; padding: 1rem; overflow-wrap: anywhere; }
+.group-result h3 { font-size: 1rem; }
+.group-result h3 span { display: inline-block; margin-left: .5rem; font-weight: 400; font-size: .8rem; color: var(--color-text-muted); }
+.group-result li { padding: .2rem 0; }
+.scoreboard-teams { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.score-team { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 1rem; background: #f8fafc; border: 1px solid var(--color-border); border-radius: .5rem; min-width: 0; overflow-wrap: anywhere; }
+.score-team label { display: flex; flex-direction: column; gap: .35rem; width: 100%; }
+.score-team .form-input { text-align: center; }
+.team-score { font-size: 4rem; line-height: 1.2; font-weight: 700; font-variant-numeric: tabular-nums; }
+.score-actions { display: flex; gap: .75rem; }
+.score-actions .btn { min-width: 64px; min-height: 48px; font-size: 1.25rem; }
+.score-team details { width: 100%; }
+.countdown-tool { min-width: 0; }
+.timer-status { text-align: center; margin-top: 1.5rem; font-size: 1rem; font-weight: 600; }
+.timer-digits { text-align: center; font-size: clamp(4rem, 10vw, 7rem); line-height: 1.2; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.04em; color: #0f172a; margin-top: .5rem; }
+.timer-finishing, .timer-finished { color: #b91c1c; }
+.timer-unit-label { text-align: center; color: var(--color-text-muted); font-size: .875rem; }
+.timer-progress { width: 100%; height: 8px; margin: 1.25rem 0; accent-color: var(--color-primary); }
+.timer-controls, .timer-settings, .timer-presets, .timer-sound { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: .6rem; }
+.timer-controls .btn { min-height: 44px; min-width: 100px; }
+.timer-settings { margin: 1.5rem 0 1rem; align-items: end; }
+.timer-settings label { display: flex; flex-direction: column; gap: .35rem; width: 90px; }
+.timer-presets button { border: 1px solid var(--color-border); border-radius: .35rem; padding: .5rem .75rem; color: var(--color-text-main); min-height: 40px; }
+.timer-presets button:hover:enabled { background: #f1f5f9; }
+.timer-sound { margin-top: 1rem; font-size: .875rem; }
+.timer-sound button { color: var(--color-primary-dark); text-decoration: underline; padding: .5rem; }
+.timer-large-dialog { background: white; border-radius: .75rem; padding: 1.5rem; width: min(100%, 950px); max-height: calc(100dvh - 2rem); overflow-y: auto; }
+.timer-dialog-close { display: flex; justify-content: end; margin-bottom: 1rem; }
+.countdown-tool-large .timer-digits { font-size: clamp(4rem, 14vw, 9rem); }
+.timer-popup-page { min-height: 100dvh; padding: 1.5rem; background: white; max-width: 1100px; margin: auto; }
+.timer-popup-brand { font-size: .875rem; color: var(--color-text-muted); margin-bottom: 1.5rem; }
+.timer-popup-note { text-align: center; margin-top: 1.5rem; }
+.timer-indicator { font-size: .85rem; font-weight: 600; white-space: nowrap; background: #eef2ff; color: var(--color-primary-dark); border: 1px solid #c7d2fe; border-radius: .4rem; padding: .4rem .6rem; font-variant-numeric: tabular-nums; }
+.timer-indicator-finished { color: #991b1b; background: #fef2f2; border-color: #fecaca; }
+.tools-panel .btn:focus-visible, .countdown-tool .btn:focus-visible { outline: 3px solid var(--color-primary-dark); outline-offset: 3px; }
+.tools-panel .btn-primary:hover:not(:disabled), .countdown-tool .btn-primary:hover:not(:disabled) { background: var(--color-primary-dark); }
+@media (max-width: 600px) {
+  .tools-panel { padding: 1rem; }
+  .tools-navigation { gap: .25rem; }
+  .tools-navigation button { padding: .6rem .65rem; font-size: .85rem; }
+  .tool-section-heading { flex-direction: column; }
+  .timer-settings label { width: 75px; }
+  .timer-controls { gap: .4rem; }
+  .timer-controls .btn { min-width: 0; padding: .5rem .75rem; }
+  .roster-footer { flex-direction: column; align-items: flex-start; }
+  .timer-popup-page, .timer-large-dialog { padding: 1rem; }
+  .timer-indicator { font-size: .75rem; padding: .35rem; }
+}

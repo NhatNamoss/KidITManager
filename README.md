@@ -45,6 +45,17 @@ Một lớp không được có hai buổi đang hiệu lực trùng giờ. Có 
 - **Xuất ảnh**: giữ bản lịch học chỉ có tên lớp như trước.
 - **Xuất TKB cho GV**: xuất thêm giáo viên (GV) và trợ giảng (TG) theo phân công mặc định của từng lớp. Các lớp trùng ca được tách rõ, người chưa được phân công có thông báo tương ứng. Tên file có thêm `GV_` để phân biệt.
 
+## Công cụ hỗ trợ giảng dạy
+
+Vào **Công cụ hỗ trợ** (`/tools`) từ menu. Các công cụ không cần thêm bảng database:
+
+- **Đếm ngược giờ:** nhập phút/giây hoặc dùng mốc nhanh, bắt đầu/tạm dừng/tiếp tục, đặt lại, cộng thêm một phút, chuông và thông báo hết giờ. Có chế độ phóng to trong trang và popup riêng (`/tools/timer`). Popup đồng bộ cùng bộ đếm với trang chính trên cùng trình duyệt; trình duyệt cần cho phép cửa sổ bật lên. Đồng hồ vẫn giữ mốc kết thúc khi chuyển trang hoặc tải lại, kèm chỉ báo ở đầu trang. Có nút thử chuông; tại popup có thể nhấn thử chuông để bật âm thanh cho cửa sổ đó.
+- **Bốc thăm học sinh:** nhập mỗi tên một dòng hoặc lấy từ danh sách lớp. Có chế độ không gọi lặp lại và bắt đầu lượt mới. Tên từ lớp kèm mã học sinh để phân biệt người trùng tên.
+- **Chia nhóm:** chia ngẫu nhiên thành tối đa 20 nhóm, giữ đủ học sinh và cân bằng số lượng, sao chép kết quả hoặc chuyển nhóm thành bảng điểm mới (tối đa 10 đội).
+- **Bảng điểm thi đua:** đổi tên, thêm/bỏ đội, cộng/trừ điểm, đưa điểm về 0; có thể xem thành viên nếu tạo từ nhóm.
+
+Danh sách nhập và bảng điểm được lưu trên trình duyệt, không lưu vào database trung tâm. Lịch sử bốc thăm và kết quả chia nhóm giữ trong trang đang mở. Mỗi trình duyệt có dữ liệu công cụ riêng.
+
 ## Đưa bản sửa lên Vercel
 
 1. Thông tin kết nối nằm sẵn trong `server/database-config.js` theo yêu cầu chủ ứng dụng. Khi đổi database, sửa file này.
