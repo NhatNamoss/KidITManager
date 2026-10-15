@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import './Classes.css';
 import { api } from '../lib/api';
 import { Modal } from '../components/Modal';
+import { notifyClassScheduleUpdated } from '../lib/class-events';
 
 export function Classes() {
   const [classes, setClasses] = useState([]);
@@ -77,6 +78,7 @@ export function Classes() {
         body: JSON.stringify({ ...formData, schedule: scheduleString })
       });
       if (response.ok) {
+        notifyClassScheduleUpdated(editId);
         await fetchClasses();
         closeModal();
       } else {

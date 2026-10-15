@@ -5,3 +5,8 @@
 .date-fields-row input { width: 4.5rem; min-width: 0; padding: .65rem .5rem; text-align: center; color: var(--color-text-main); }
 .date-fields-row label:last-child input { width: 5.5rem; }
 .date-fields-error { color: #991b1b; font-size: .75rem; margin-top: .4rem; }
+.attendance-date-picker { flex: 0 0 auto; max-width: 100%; }
+.attendance-date-picker select { min-height: 43px; width: 4rem; }
+.attendance-date-picker label:first-child select { width: 9.5rem; }
+.attendance-date-picker .date-fields-row { flex-wrap: wrap; gap: .375rem; }
+.attendance-date-picker .date-fields-row label:last-child input { width: 5rem; }

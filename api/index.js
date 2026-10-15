@@ -1,6 +1,7 @@
 import express from 'express';
 import { randomUUID } from 'node:crypto';
 import { registerTeachingSessions } from '../server/teaching-sessions.js';
+import { registerStudentAttendance } from '../server/student-attendance.js';
 import { validDate } from '../server/session-domain.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -357,29 +358,7 @@ app.delete('/api/classes/:id/students/:student_id', (req, res) => {
 });
 
 // ---------------- ATTENDANCE ----------------
-app.get('/api/classes/:id/attendance', (req, res) => {
-  const { date } = req.query; // YYYY-MM-DD
-  db.all('SELECT student_id, status FROM attendance WHERE class_id = ? AND date = ?', [req.params.id, date], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
-});
-
-app.post('/api/classes/:id/attendance', (req, res) => {
-  const { date, student_id, status } = req.body;
-  db.get('SELECT id FROM class_students WHERE class_id=? AND student_id=?', [req.params.id, student_id], (error, row) => {
-    if (error) return res.status(500).json({ error: 'Không kiểm tra được danh sách lớp.' });
-    if (!row) return res.status(400).json({ error: 'Học sinh không có trong lớp.' });
-    db.run(`INSERT INTO attendance (class_id, student_id, date, status) VALUES (?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE status = VALUES(status)`,
-    [req.params.id, student_id, date, status],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ success: true });
-    }
-  );
-  });
-});
+registerStudentAttendance(app, pool);
 
 // ---------------- TEACHER ATTENDANCE ----------------
 app.get('/api/classes/:id/teacher-attendance', (req, res) => {

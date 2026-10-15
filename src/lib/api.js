@@ -1,7 +1,11 @@
 export async function api(url, options) {
   const response = await fetch(url, options);
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || 'Không tải hoặc lưu được dữ liệu.');
+  if (!response.ok) {
+    const error = new Error(data.error || 'Không tải hoặc lưu được dữ liệu.');
+    error.status = response.status;
+    throw error;
+  }
   return data;
 }
 export const jsonBody = (body, method = 'POST') => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
