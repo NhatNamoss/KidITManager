@@ -21,6 +21,7 @@ export function Schedule() {
   const [error, setError] = useState('');
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef(null);
+  const teacherExportRef = useRef(null);
 
   useEffect(() => {
     api('/api/classes')
@@ -66,19 +67,22 @@ export function Schedule() {
   const colorClasses = ['bg-blue', 'bg-green', 'bg-purple', 'bg-orange', 'bg-pink', 'bg-teal'];
   const timeSlots = [...new Set([...TIME_SLOTS, ...scheduleBlocks.map(b => b.timeKey)])].sort();
 
-  const handleExport = async () => {
-    if (exportRef.current) {
-      setExporting(true);
+  const handleExport = async (forTeachers = false) => {
+    const target = forTeachers ? teacherExportRef.current : exportRef.current;
+    if (target) {
+      setExporting(forTeachers ? 'teachers' : 'standard');
       try {
+        await document.fonts.ready;
+        await Promise.all(Array.from(target.querySelectorAll('img')).map(img => img.decode()));
         const html2canvas = (await import('html2canvas')).default;
-        const canvas = await html2canvas(exportRef.current, {
+        const canvas = await html2canvas(target, {
           scale: 2, // High resolution for better quality
           useCORS: true,
           backgroundColor: null,
         });
         const image = canvas.toDataURL('image/png', 1.0);
         const link = document.createElement('a');
-        link.download = `Lich_Hoc_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.png`;
+        link.download = `Lich_Hoc_${forTeachers ? 'GV_' : ''}${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.png`;
         link.href = image;
         link.click();
       } catch (err) {
@@ -95,10 +99,16 @@ export function Schedule() {
           <h1 className="text-h1">Thời khóa biểu toàn trung tâm</h1>
           <p className="text-muted mt-2">Tổng quan lịch học của tất cả các lớp trong tuần.</p>
         </div>
-        <Button onClick={handleExport} variant="primary" disabled={loading || Boolean(error) || exporting}>
+        <div className="flex gap-2 schedule-export-actions">
+        <Button onClick={() => handleExport()} variant="primary" disabled={loading || Boolean(error) || Boolean(exporting)}>
           <Download size={18} className="mr-2" />
-          {exporting ? 'Đang xuất ảnh...' : 'Xuất ảnh'}
+          {exporting === 'standard' ? 'Đang xuất ảnh...' : 'Xuất ảnh'}
         </Button>
+        <Button onClick={() => handleExport(true)} variant="secondary" disabled={loading || Boolean(error) || Boolean(exporting)}>
+          <Download size={18} className="mr-2" />
+          {exporting === 'teachers' ? 'Đang xuất TKB cho GV...' : 'Xuất TKB cho GV'}
+        </Button>
+        </div>
       </div>
 
       {error && <p role="alert" className="feedback-error">{error}</p>}
@@ -148,6 +158,7 @@ export function Schedule() {
       </div>
       
       <ScheduleExportTemplate ref={exportRef} scheduleBlocks={scheduleBlocks} applyDate="" />
+      <ScheduleExportTemplate ref={teacherExportRef} scheduleBlocks={scheduleBlocks} applyDate="" includeStaff />
     </div>
   );
 }

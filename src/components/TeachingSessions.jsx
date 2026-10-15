@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, jsonBody, localDate } from '../lib/api';
 import { Button } from './ui/Button';
+import { DateFields } from './DateFields';
 import './TeachingSessions.css';
 
 const labels = { draft: 'Chưa xác nhận', completed: 'Đã dạy, tính công', cancelled: 'Đã hủy, không tính công' };
@@ -52,7 +53,7 @@ export function TeachingSessions({ classInfo }) {
     {form && <form onSubmit={save} className="session-form" aria-label="Thông tin buổi dạy">
       <h3 className="text-h3">{form.id ? 'Sửa buổi dạy' : 'Ghi buổi dạy mới'}</h3>
       <fieldset disabled={saving}><div className="session-fields">
-        <label>Ngày dạy<input required type="date" className="form-input" value={form.date} onChange={e => change('date', e.target.value)} /></label>
+        <DateFields label="Ngày dạy" value={form.date} onChange={value => change('date', value)} />
         <label>Bắt đầu<input required type="time" className="form-input" value={form.start_time} onChange={e => change('start_time', e.target.value)} /></label>
         <label>Kết thúc<input required type="time" className="form-input" value={form.end_time} onChange={e => change('end_time', e.target.value)} /></label>
         <label>Trạng thái<select className="form-input" value={form.status} onChange={e => change('status', e.target.value)}>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
@@ -67,7 +68,7 @@ export function TeachingSessions({ classInfo }) {
       <Button type="button" variant="secondary" onClick={() => change('staff', [...form.staff, { teacher_id: '', role: 'teacher', minutes: 120 }])}>Thêm người dạy / dạy thay</Button>
       {!teachers.length && <p className="text-muted">Hãy thêm nhân sự ở mục Giáo viên trước khi xác nhận công.</p>}
       <label className="session-notes">Ghi chú dạy thay / chia ca<textarea className="form-input" maxLength="2000" rows="3" value={form.notes} onChange={e => change('notes', e.target.value)} /></label>
-      <div className="flex gap-2"><Button type="submit">{saving ? 'Đang lưu...' : 'Lưu buổi dạy'}</Button><Button type="button" variant="ghost" onClick={() => setForm(null)}>Hủy chỉnh sửa</Button></div>
+      <div className="flex gap-2"><Button type="submit" disabled={!form.date}>{saving ? 'Đang lưu...' : 'Lưu buổi dạy'}</Button><Button type="button" variant="ghost" onClick={() => setForm(null)}>Hủy chỉnh sửa</Button></div>
       </fieldset></form>}
     {loading ? <p role="status">Đang tải buổi dạy...</p> : sessions.length === 0 ? <p className="empty-message">Chưa ghi buổi dạy nào. Lịch phân công chỉ là gợi ý khi tạo buổi mới.</p> :
       <div className="session-list">{sessions.map(s => <article className="session-item" key={s.id}>

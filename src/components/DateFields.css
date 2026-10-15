@@ -1,0 +1,7 @@
+.date-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.date-fields legend { font-size: .875rem; font-weight: 500; margin-bottom: .4rem; }
+.date-fields-row { display: flex; gap: .5rem; }
+.date-fields-row label { display: flex; flex-direction: column; gap: .25rem; font-size: .75rem; color: var(--color-text-muted); }
+.date-fields-row input { width: 4.5rem; min-width: 0; padding: .65rem .5rem; text-align: center; color: var(--color-text-main); }
+.date-fields-row label:last-child input { width: 5.5rem; }
+.date-fields-error { color: #991b1b; font-size: .75rem; margin-top: .4rem; }

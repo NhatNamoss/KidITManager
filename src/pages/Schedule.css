@@ -5,6 +5,8 @@
   background-color: var(--color-surface);
 }
 
+.schedule-export-actions { flex-wrap: wrap; }
+
 .schedule-fixed-grid {
   display: grid;
   grid-template-columns: 110px repeat(7, minmax(140px, 1fr));

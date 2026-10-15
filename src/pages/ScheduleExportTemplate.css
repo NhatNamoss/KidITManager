@@ -171,3 +171,18 @@
   font-size: 16px;
   line-height: 1.5;
 }
+
+.export-container-staff { width: 1600px; height: auto; min-height: 1000px; }
+.export-container-staff .export-title { font-size: 60px; }
+.export-staff-subtitle { color: white; font-size: 22px; font-weight: 700; margin-bottom: 12px; }
+.export-container-staff .export-table { table-layout: fixed; height: auto; }
+.export-container-staff .export-table th:first-child { width: 150px; }
+.export-container-staff .export-table td { height: auto; vertical-align: top; }
+.export-container-staff .export-time-col { width: 100%; min-height: 126px; padding: 12px 4px; }
+.export-cell-staff { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; height: auto; text-shadow: none; }
+.export-staff-class { padding: 10px; min-height: 126px; }
+.export-staff-class + .export-staff-class { border-top: 3px solid #003399; }
+.export-staff-class-name { font-size: 21px; line-height: 1.25; margin-bottom: 8px; overflow-wrap: anywhere; text-shadow: 1px 1px 2px #003399; }
+.export-staff-names { background: white; color: #003399; padding: 7px; border-radius: 4px; font-size: 16px; font-weight: 600; line-height: 1.45; text-align: left; overflow-wrap: anywhere; }
+.export-container-staff .export-footer { height: auto; min-height: 110px; }
+.export-container-staff .export-notes { flex-basis: 100%; }

@@ -17,7 +17,7 @@ Không bật `INIT_DB` trên Vercel. Migration là bước riêng trước khi t
 ## Buổi dạy và chấm công
 
 1. Vào **Lớp học → Chi tiết → Ghi buổi dạy**.
-2. Chọn ngày, giờ bắt đầu và kết thúc. Lịch mặc định chỉ gợi ý giờ và nhân sự, có thể thay đổi cho từng buổi.
+2. Nhập ngày, tháng, năm vào ba ô riêng, rồi chọn giờ bắt đầu và kết thúc. Phần điểm danh học sinh cũng dùng ba ô ngày/tháng/năm. Ngày sai hoặc chưa nhập đủ sẽ không cho ghi điểm danh. Lịch mặc định chỉ gợi ý giờ và nhân sự, có thể thay đổi cho từng buổi.
 3. Chọn người thực tế dạy. Mọi nhân sự đều có thể được chọn làm người dạy chính hoặc trợ giảng trong buổi đó, không bị khóa theo chức danh mặc định.
 4. Nếu chia ca, thêm từng người và nhập số phút công thực tế. Một người chỉ có một dòng trong cùng buổi; số phút không vượt thời lượng buổi. Các người cùng dạy có thể cùng nhận đủ thời lượng buổi.
 5. Chọn **Chưa xác nhận**, **Đã dạy, tính công**, hoặc **Đã hủy, không tính công**. Chỉ xác nhận sau giờ kết thúc theo giờ Việt Nam. Không hỗ trợ ca qua nửa đêm.
@@ -28,6 +28,11 @@ Số lượt dạy là số buổi người đó được ghi nhận, tách theo
 Một lớp không được có hai buổi đang hiệu lực trùng giờ. Có thể sửa buổi đã lưu hoặc đổi trạng thái thành đã hủy; không xóa cứng công. Hai người cùng sửa một buổi sẽ nhận cảnh báo xung đột thay vì âm thầm ghi đè. Mỗi lần lưu có bản ghi trong `session_revisions`.
 
 Điểm danh giáo viên kiểu cũ vẫn được giữ và hiển thị riêng trong bảng công để đối chiếu. Các dòng này chưa đủ giờ ca nên không tự cộng vào công mới. Điểm danh học sinh hiện vẫn theo ngày và độc lập với công giảng dạy.
+
+## Xuất thời khóa biểu
+
+- **Xuất ảnh**: giữ bản lịch học chỉ có tên lớp như trước.
+- **Xuất TKB cho GV**: xuất thêm giáo viên (GV) và trợ giảng (TG) theo phân công mặc định của từng lớp. Các lớp trùng ca được tách rõ, người chưa được phân công có thông báo tương ứng. Tên file có thêm `GV_` để phân biệt.
 
 ## Đưa bản sửa lên Vercel
 

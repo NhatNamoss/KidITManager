@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { TeachingSessions } from '../components/TeachingSessions';
+import { DateFields } from '../components/DateFields';
 import { api, jsonBody, localDate } from '../lib/api';
 import './ClassDetail.css';
 
@@ -24,6 +25,7 @@ export function ClassDetail() {
   }, [id, reload]);
   useEffect(() => {
     const controller = new AbortController(); setAttendance({}); setLoadingAttendance(true);
+    if (!date) { setLoadingAttendance(false); return () => controller.abort(); }
     api(`/api/classes/${id}/attendance?date=${date}`, { signal: controller.signal })
       .then(rows => setAttendance(Object.fromEntries(rows.map(r => [r.student_id, r.status]))))
       .catch(e => { if (!controller.signal.aborted) setError(e.message); })
@@ -41,14 +43,14 @@ export function ClassDetail() {
       <h1 className="text-h1">{data.cls.name}</h1><p className="text-muted mt-2">Phân công mặc định: {data.cls.teacher || 'Chưa có giáo viên'}{data.cls.ta ? ` · Trợ giảng: ${data.cls.ta}` : ''} · Phòng: {data.cls.room || 'Chưa xếp'}</p>
       <TeachingSessions key={id} classInfo={data.cls} />
       <section className="glass-panel p-6"><div className="session-heading"><div><h2 className="text-h2">Điểm danh học sinh theo ngày</h2><p className="text-muted">Phần học sinh vẫn theo ngày; công giảng dạy được lưu riêng theo từng buổi ở trên.</p></div>
-        <label>Ngày điểm danh<input aria-label="Ngày điểm danh học sinh" type="date" className="form-input" value={date} disabled={busy} onChange={e => { if (e.target.value) setDate(e.target.value); }} /></label></div>
+        <DateFields label="Ngày điểm danh học sinh" value={date} disabled={busy} onChange={setDate} /></div>
         {loadingAttendance && <p role="status">Đang tải điểm danh...</p>}
         <div className="enrolled-list mt-4">{data.students.map(student => <div className="enrolled-item" key={student.id}>
           <div className="enrolled-info"><strong>{student.name}</strong><p className="text-muted">{attendance[student.id] === 'present' ? 'Có mặt' : attendance[student.id] === 'absent' ? 'Vắng mặt' : 'Chưa điểm danh'}</p></div>
-          <div className="student-actions"><Button variant={attendance[student.id] === 'present' ? 'primary' : 'secondary'} disabled={busy || loadingAttendance} onClick={() => act(async () => {
+          <div className="student-actions"><Button variant={attendance[student.id] === 'present' ? 'primary' : 'secondary'} disabled={busy || loadingAttendance || !date} onClick={() => act(async () => {
             await api(`/api/classes/${id}/attendance`, jsonBody({ date, student_id: student.id, status: 'present' })); setAttendance(a => ({ ...a, [student.id]: 'present' }));
           })}>Có mặt</Button>
-          <Button variant={attendance[student.id] === 'absent' ? 'primary' : 'secondary'} disabled={busy || loadingAttendance} onClick={() => act(async () => {
+          <Button variant={attendance[student.id] === 'absent' ? 'primary' : 'secondary'} disabled={busy || loadingAttendance || !date} onClick={() => act(async () => {
             await api(`/api/classes/${id}/attendance`, jsonBody({ date, student_id: student.id, status: 'absent' })); setAttendance(a => ({ ...a, [student.id]: 'absent' }));
           })}>Vắng</Button>
           <Button variant="ghost" disabled={busy} onClick={() => {

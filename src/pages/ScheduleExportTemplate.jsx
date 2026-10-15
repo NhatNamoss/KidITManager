@@ -20,7 +20,7 @@ const COLORS = {
   'TỰ LUYỆN': '#cc0000'
 };
 
-export const ScheduleExportTemplate = React.forwardRef(({ scheduleBlocks, applyDate }, ref) => {
+export const ScheduleExportTemplate = React.forwardRef(({ scheduleBlocks, applyDate, includeStaff = false }, ref) => {
   const slots = [...new Set([...TIME_SLOTS.map(s => s.time), ...scheduleBlocks.map(b => b.timeKey)])].sort().map(time => TIME_SLOTS.find(s => s.time === time) || { time, label: '', icon: '', type: 'morning' });
   
   const getCellColor = (className) => {
@@ -34,14 +34,15 @@ export const ScheduleExportTemplate = React.forwardRef(({ scheduleBlocks, applyD
   };
 
   return (
-    <div className="export-template-wrapper">
-      <div className="export-container" ref={ref}>
+    <div className="export-template-wrapper" aria-hidden="true">
+      <div className={`export-container${includeStaff ? ' export-container-staff' : ''}`} ref={ref}>
         
         {/* Header Section */}
         <div className="export-header">
           <img src="/logo.png" alt="Logo" className="export-logo" />
           <div className="export-title-container">
             <h1 className="export-title">LỊCH HỌC</h1>
+            {includeStaff && <p className="export-staff-subtitle">PHÂN CÔNG GIÁO VIÊN & TRỢ GIẢNG</p>}
             <div className="export-date-pill">
               Áp dụng từ ngày {applyDate || new Date().toLocaleDateString('vi-VN')}
             </div>
@@ -83,8 +84,11 @@ export const ScheduleExportTemplate = React.forwardRef(({ scheduleBlocks, applyD
                     if (blocks.length) {
                       return (
                         <td key={`${day}-${slot.time}`} style={{ backgroundColor: getCellColor(blocks[0].className) }}>
-                          <div className="export-cell">
-                            {blocks.map(b => b.className).join(' / ')}
+                          <div className={`export-cell${includeStaff ? ' export-cell-staff' : ''}`}>
+                            {includeStaff ? blocks.map(block => <div key={block.id} className="export-staff-class" style={{ backgroundColor: getCellColor(block.className) }}>
+                              <div className="export-staff-class-name">{block.className}</div>
+                              <div className="export-staff-names"><div>GV: {block.teacher?.trim() || 'Chưa phân công'}</div><div>TG: {block.ta?.trim() || 'Chưa phân công'}</div></div>
+                            </div>) : blocks.map(b => b.className).join(' / ')}
                           </div>
                         </td>
                       );
@@ -104,7 +108,7 @@ export const ScheduleExportTemplate = React.forwardRef(({ scheduleBlocks, applyD
               ⭐ GHI CHÚ:
             </div>
             <ul>
-              <li>Tự luyện: Học viên ưu tiên theo nhóm lớp.</li>
+              <li>{includeStaff ? 'GV: Giáo viên. TG: Trợ giảng. Theo phân công mặc định của lớp.' : 'Tự luyện: Học viên ưu tiên theo nhóm lớp.'}</li>
               <li>Lịch học có thể thay đổi khi cần thiết.</li>
             </ul>
           </div>
