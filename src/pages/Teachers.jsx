@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Search, Plus, UserCheck, UserPlus, Phone, Edit, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import './Teachers.css';
+import { api } from '../lib/api';
+import { Modal } from '../components/Modal';
 
 export function Teachers() {
   const [teachers, setTeachers] = useState([]);
@@ -10,17 +12,14 @@ export function Teachers() {
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [error, setError] = useState('');
 
   const fetchTeachers = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/teachers');
-      if (response.ok) {
-        const data = await response.json();
-        setTeachers(data);
-      }
+      setError(''); setTeachers(await api('/api/teachers'));
     } catch (error) {
-      console.error('Failed to fetch teachers:', error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -66,9 +65,9 @@ export function Teachers() {
       });
       if (response.ok) {
         await fetchTeachers();
-      }
+      } else { const data = await response.json(); throw new Error(data.error || 'Không thể xóa nhân sự.'); }
     } catch (error) {
-      console.error('Failed to delete teacher:', error);
+      setError(error.message);
     }
   };
 
@@ -119,6 +118,7 @@ export function Teachers() {
         </div>
       </div>
 
+      {error && <p role="alert" className="feedback-error">{error} <button onClick={fetchTeachers}>Thử lại</button></p>}
       {loading ? (
         <div className="text-center py-4">Đang tải dữ liệu...</div>
       ) : filteredTeachers.length === 0 ? (
@@ -132,8 +132,8 @@ export function Teachers() {
                   {teacher.role === 1 ? <UserCheck size={24} /> : <UserPlus size={24} />}
                 </div>
                 <div className="teacher-actions">
-                  <button onClick={() => openEditModal(teacher)} className="action-icon text-muted mr-2 hover:text-primary"><Edit size={16} /></button>
-                  <button onClick={() => handleDelete(teacher.id)} className="action-icon text-danger hover:text-danger"><Trash2 size={16} /></button>
+                  <button aria-label={`Sửa nhân sự ${teacher.name}`} onClick={() => openEditModal(teacher)} className="action-icon text-muted mr-2 hover:text-primary"><Edit size={16} /></button>
+                  <button aria-label={`Xóa nhân sự ${teacher.name}`} onClick={() => handleDelete(teacher.id)} className="action-icon text-danger hover:text-danger"><Trash2 size={16} /></button>
                 </div>
               </div>
               
@@ -156,7 +156,7 @@ export function Teachers() {
       )}
 
       {isModalOpen && (
-        <div className="modal-overlay">
+        <Modal title={editId ? 'Sửa nhân sự' : 'Thêm nhân sự'} onClose={closeModal}>
           <div className="modal-content glass-panel animate-fade-in">
             <h2 className="text-h2 mb-4">{editId ? 'Sửa thông tin Nhân sự' : 'Thêm Nhân sự mới'}</h2>
             <form onSubmit={handleSubmit} className="form-layout">
@@ -184,7 +184,7 @@ export function Teachers() {
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

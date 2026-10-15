@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { Search, Plus, Users, Clock, MapPin } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import './Classes.css';
+import { api } from '../lib/api';
+import { Modal } from '../components/Modal';
 
 export function Classes() {
   const [classes, setClasses] = useState([]);
@@ -12,6 +14,8 @@ export function Classes() {
   const [scheduleSlots, setScheduleSlots] = useState([{ day: 'Thứ 2', startTime: '15:15', endTime: '17:15' }]);
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [error, setError] = useState('');
 
   const TIME_SLOTS = [
     { label: '07:00 - 09:00', start: '07:00', end: '09:00' },
@@ -24,13 +28,10 @@ export function Classes() {
   const fetchClasses = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/classes');
-      if (response.ok) {
-        const data = await response.json();
-        setClasses(data);
-      }
+      setError('');
+      setClasses(await api('/api/classes'));
     } catch (error) {
-      console.error('Failed to fetch classes:', error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -164,24 +165,18 @@ export function Classes() {
       <div className="classes-actions glass-panel mb-4">
         <div className="search-box">
           <Search size={18} className="text-muted" />
-          <input type="text" placeholder="Tìm kiếm lớp học, môn học..." className="table-search-input" />
-        </div>
-        <div className="filter-actions">
-          <select className="form-input" style={{ width: 'auto' }}>
-            <option>Tất cả trạng thái</option>
-            <option>Đang học</option>
-            <option>Sắp mở</option>
-          </select>
+          <input aria-label="Tìm lớp học" type="search" placeholder="Tìm kiếm lớp, giáo viên..." className="table-search-input" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
 
+      {error && <p role="alert" className="feedback-error">{error} <button onClick={fetchClasses}>Thử lại</button></p>}
       {loading ? (
         <div className="text-center py-4">Đang tải dữ liệu...</div>
       ) : classes.length === 0 ? (
         <div className="text-center py-4 glass-panel">Chưa có lớp học nào. Bấm "Mở Lớp Mới" để tạo.</div>
       ) : (
         <div className="classes-grid">
-          {classes.map(cls => (
+          {classes.filter(cls => `${cls.name} ${cls.teacher} ${cls.ta}`.toLocaleLowerCase('vi').includes(search.toLocaleLowerCase('vi'))).map(cls => (
             <div key={cls.id} className="class-card glass-panel">
               <div className="class-card-header bg-primary-light">
                 <h3 className="text-h3 text-primary">{cls.name}</h3>
@@ -229,7 +224,7 @@ export function Classes() {
       )}
 
       {isModalOpen && (
-        <div className="modal-overlay">
+        <Modal title={editId ? 'Sửa lớp học' : 'Mở lớp mới'} onClose={closeModal}>
           <div className="modal-content glass-panel animate-fade-in">
             <h2 className="text-h2 mb-4">{editId ? 'Sửa thông tin Lớp học' : 'Mở Lớp Mới'}</h2>
             <form onSubmit={handleSubmit} className="form-layout">
@@ -322,7 +317,7 @@ export function Classes() {
                 </div>
                 <div className="form-group">
                   <label>Sĩ số tối đa</label>
-                  <input type="number" name="capacity" value={formData.capacity} onChange={handleInputChange} className="form-input" />
+                  <input type="number" min="1" name="capacity" value={formData.capacity} onChange={handleInputChange} className="form-input" />
                 </div>
               </div>
               
@@ -332,7 +327,7 @@ export function Classes() {
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { Search, Plus, Edit2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import './Students.css';
+import { api, downloadCsv } from '../lib/api';
+import { Modal } from '../components/Modal';
 
 export function Students() {
   const [students, setStudents] = useState([]);
@@ -9,17 +11,16 @@ export function Students() {
   const [formData, setFormData] = useState({ name: '', phone: '', parentName: '', parentPhone: '' });
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [error, setError] = useState('');
+  const filteredStudents = students.filter(s => `${s.name} ${s.phone || ''} ${s.parentName || ''} ${s.parentPhone || ''}`.toLocaleLowerCase('vi').includes(search.toLocaleLowerCase('vi')));
 
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/students');
-      if (response.ok) {
-        const data = await response.json();
-        setStudents(data);
-      }
+      setError(''); setStudents(await api('/api/students'));
     } catch (error) {
-      console.error('Failed to fetch students:', error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -87,15 +88,15 @@ export function Students() {
         </Button>
       </div>
 
+      {error && <p role="alert" className="feedback-error">{error} <button onClick={fetchStudents}>Thử lại</button></p>}
       <div className="glass-panel table-container">
         <div className="table-actions">
           <div className="search-box">
             <Search size={18} className="text-muted" />
-            <input type="text" placeholder="Tìm kiếm theo tên hoặc Ngày sinh..." className="table-search-input" />
+            <input aria-label="Tìm học sinh" type="search" placeholder="Tìm theo tên, ngày sinh, phụ huynh..." className="table-search-input" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <div className="filter-actions">
-            <Button variant="secondary" size="sm">Bộ lọc</Button>
-            <Button variant="secondary" size="sm">Xuất Excel</Button>
+            <Button variant="secondary" size="sm" disabled={loading || !filteredStudents.length} onClick={() => downloadCsv('Hoc-sinh.csv', [['ID', 'Họ tên', 'Ngày sinh (trường cũ)', 'Phụ huynh', 'SĐT phụ huynh'], ...filteredStudents.map(s => [s.id, s.name, s.phone, s.parentName, s.parentPhone])])}>Xuất CSV</Button>
           </div>
         </div>
 
@@ -114,10 +115,10 @@ export function Students() {
           <tbody>
             {loading ? (
               <tr><td colSpan="7" className="text-center py-4">Đang tải dữ liệu...</td></tr>
-            ) : students.length === 0 ? (
+            ) : filteredStudents.length === 0 ? (
               <tr><td colSpan="7" className="text-center py-4">Chưa có học sinh nào.</td></tr>
             ) : (
-              students.map(student => (
+              filteredStudents.map(student => (
                 <tr key={student.id}>
                   <td>HS{String(student.id).padStart(4, '0')}</td>
                   <td className="font-medium">{student.name}</td>
@@ -126,8 +127,7 @@ export function Students() {
                   <td>{student.parentPhone || '—'}</td>
                   <td>{new Date(student.createdAt).toLocaleDateString('vi-VN')}</td>
                   <td className="text-right">
-                    <button className="action-btn" onClick={() => openEditModal(student)}><Edit2 size={16} /></button>
-                    <button className="action-btn text-danger"><Trash2 size={16} /></button>
+                    <button aria-label={`Sửa học sinh ${student.name}`} className="action-btn" onClick={() => openEditModal(student)}><Edit2 size={16} /></button>
                   </td>
                 </tr>
               ))
@@ -137,7 +137,7 @@ export function Students() {
       </div>
 
       {isModalOpen && (
-        <div className="modal-overlay">
+        <Modal title={editId ? 'Sửa học sinh' : 'Thêm học sinh'} onClose={closeModal}>
           <div className="modal-content glass-panel animate-fade-in">
             <h2 className="text-h2 mb-4">{editId ? 'Sửa thông tin Học sinh' : 'Thêm Học sinh mới'}</h2>
             <form onSubmit={handleSubmit} className="form-layout">
@@ -163,7 +163,7 @@ export function Students() {
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

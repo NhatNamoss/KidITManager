@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
   GraduationCap, 
-  BookOpen, 
   CreditCard,
-  Settings,
   LogOut,
   Calendar,
   UserCheck,
@@ -14,9 +12,19 @@ import {
   X
 } from 'lucide-react';
 import './MainLayout.css';
+import { api } from '../lib/api';
 
 export function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 768px)').matches);
+  const menuRef = useRef(null);
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 768px)');
+    const changed = () => setMobile(media.matches);
+    const escape = e => { if (e.key === 'Escape' && sidebarOpen) { setSidebarOpen(false); menuRef.current?.focus(); } };
+    media.addEventListener('change', changed); window.addEventListener('keydown', escape);
+    return () => { media.removeEventListener('change', changed); window.removeEventListener('keydown', escape); };
+  }, [sidebarOpen]);
 
   const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -24,7 +32,7 @@ export function MainLayout() {
     { path: '/teachers', icon: UserCheck, label: 'Giáo viên' },
     { path: '/students', icon: Users, label: 'Học sinh' },
     { path: '/classes', icon: GraduationCap, label: 'Lớp học' },
-    { path: '/courses', icon: BookOpen, label: 'Khóa học' },
+    { path: '/payroll', icon: UserCheck, label: 'Chấm công' },
     { path: '/finance', icon: CreditCard, label: 'Học phí' },
   ];
 
@@ -36,11 +44,11 @@ export function MainLayout() {
       {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
 
       {/* Sidebar */}
-      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+      <aside id="main-navigation" inert={mobile && !sidebarOpen} className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="logo-icon">KI</div>
           <h2 className="logo-text">KidIT Manager</h2>
-          <button className="sidebar-close-btn" onClick={closeSidebar}>
+          <button aria-label="Đóng menu" className="sidebar-close-btn" onClick={closeSidebar}>
             <X size={20} />
           </button>
         </div>
@@ -61,11 +69,10 @@ export function MainLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <button className="nav-item">
-            <Settings size={20} />
-            <span>Cài đặt</span>
-          </button>
-          <button className="nav-item text-danger" style={{ color: 'var(--color-danger)' }}>
+          <button className="nav-item text-danger" style={{ color: 'var(--color-danger)' }} onClick={async () => {
+            try { await api('/api/auth/logout', { method: 'POST' }); window.dispatchEvent(new Event('session-expired')); }
+            catch (error) { alert(error.message); }
+          }}>
             <LogOut size={20} />
             <span>Đăng xuất</span>
           </button>
@@ -75,11 +82,11 @@ export function MainLayout() {
       {/* Main Content */}
       <main className="main-content">
         <header className="top-header glass-panel">
-          <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)}>
+          <button ref={menuRef} aria-label="Mở menu" aria-expanded={sidebarOpen} aria-controls="main-navigation" className="mobile-menu-btn" onClick={() => setSidebarOpen(true)}>
             <Menu size={24} />
           </button>
           <div className="header-search">
-            <input type="text" placeholder="Tìm kiếm học sinh, lớp học..." className="search-input" />
+            <span className="font-medium">Quản lý trung tâm KidIT</span>
           </div>
           <div className="header-user">
             <div className="user-avatar">A</div>

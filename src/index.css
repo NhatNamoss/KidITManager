@@ -14,9 +14,9 @@
   --color-text-main: #0f172a;
   --color-text-muted: #64748b;
   
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
+  --color-success: #047857;
+  --color-warning: #92400e;
+  --color-danger: #b91c1c;
 
   --color-border: #e2e8f0;
   
@@ -110,6 +110,7 @@ input, select, textarea {
 }
 
 .main-content {
+  min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -133,3 +134,23 @@ input, select, textarea {
 .animate-fade-in {
   animation: fadeIn var(--transition-normal) forwards;
 }
+
+:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 3px; }
+button:disabled { opacity: .55; cursor: not-allowed; }
+.text-primary { color: var(--color-primary); }
+.text-danger { color: var(--color-danger); }
+.text-success { color: var(--color-success); }
+.mb-6 { margin-bottom: 1.5rem; }
+.p-4 { padding: 1rem; }
+.mr-2 { margin-right: .5rem; }
+.font-medium { font-weight: 500; }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.w-full { width: 100%; }
+.flex-1 { flex: 1; }
+.page-header { flex-wrap: wrap; gap: 1rem; }
+.table-container { overflow-x: auto; }
+.modal-overlay { z-index: 200; padding: 1rem; }
+.modal-shell { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0; padding: 0; background: transparent; }
+.modal-content { max-height: calc(100dvh - 2rem); overflow-y: auto; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

@@ -2,9 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Search, Plus, FileText, CheckCircle, Clock } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import './Finance.css';
+import { api } from '../lib/api';
+import { Modal } from '../components/Modal';
 
 export function Finance() {
-  const [activeTab, setActiveTab] = useState('invoices');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [details, setDetails] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [students, setStudents] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -13,24 +19,20 @@ export function Finance() {
 
   const fetchData = async () => {
     try {
-      const invRes = await fetch('/api/invoices');
-      if (invRes.ok) {
-        const data = await invRes.json();
+      setError('');
+      const data = await api('/api/invoices');
         setInvoices(data);
         
         let rev = 0, pen = 0, over = 0;
         data.forEach(i => {
-          if (i.status === 'paid') rev += i.amount;
-          if (i.status === 'pending') pen += i.amount;
-          if (i.status === 'overdue') over += i.amount;
+          if (i.status === 'paid') rev += Number(i.amount);
+          if (i.status === 'pending') pen += Number(i.amount);
+          if (i.status === 'overdue') over += Number(i.amount);
         });
         setStats({ revenue: rev, pending: pen, overdue: over });
-      }
-
-      const stuRes = await fetch('/api/students');
-      if (stuRes.ok) setStudents(await stuRes.json());
+      setStudents(await api('/api/students'));
     } catch (error) {
-      console.error('Failed to fetch finance data:', error);
+      setError(error.message);
     }
   };
 
@@ -40,6 +42,7 @@ export function Finance() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSaving(true); setError('');
     try {
       const res = await fetch('/api/invoices', {
         method: 'POST',
@@ -50,10 +53,10 @@ export function Finance() {
         await fetchData();
         setIsModalOpen(false);
         setFormData({ student_id: '', amount: '', status: 'paid' });
-      }
+      } else { const data = await res.json(); throw new Error(data.error || 'Không lưu được hóa đơn.'); }
     } catch (error) {
-      console.error('Failed to add invoice:', error);
-    }
+      setError(error.message);
+    } finally { setSaving(false); }
   };
 
   const formatCurrency = (amount) => {
@@ -88,33 +91,23 @@ export function Finance() {
          </div>
       </div>
 
-      <div className="glass-panel">
+      {error && <p role="alert" className="feedback-error">{error}</p>}
+      <div className="glass-panel table-container">
         <div className="finance-tabs">
-          <button 
-            className={`tab-btn ${activeTab === 'invoices' ? 'active' : ''}`}
-            onClick={() => setActiveTab('invoices')}
-          >
-            Hóa đơn Học phí
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'expenses' ? 'active' : ''}`}
-            onClick={() => setActiveTab('expenses')}
-          >
-            Phiếu Chi
-          </button>
+          <h2 className="text-h3 p-4">Hóa đơn học phí</h2>
         </div>
 
         <div className="table-actions">
           <div className="search-box">
             <Search size={18} className="text-muted" />
-            <input type="text" placeholder="Tìm kiếm hóa đơn, tên học sinh..." className="table-search-input" />
+            <input aria-label="Tìm hóa đơn" type="search" placeholder="Tìm kiếm hóa đơn, tên học sinh..." className="table-search-input" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <div className="filter-actions">
-            <select className="form-input" style={{ width: 'auto' }}>
-              <option>Tất cả trạng thái</option>
-              <option>Đã thanh toán</option>
-              <option>Chưa thanh toán</option>
-              <option>Quá hạn</option>
+            <select aria-label="Lọc trạng thái hóa đơn" className="form-input" style={{ width: 'auto' }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <option value="">Tất cả trạng thái</option>
+              <option value="paid">Đã thanh toán</option>
+              <option value="pending">Chưa thanh toán</option>
+              <option value="overdue">Quá hạn</option>
             </select>
           </div>
         </div>
@@ -133,7 +126,7 @@ export function Finance() {
           <tbody>
             {invoices.length === 0 ? (
               <tr><td colSpan="6" className="text-center py-4">Chưa có hóa đơn nào</td></tr>
-            ) : invoices.map((inv) => (
+            ) : invoices.filter(inv => (!statusFilter || inv.status === statusFilter) && `${inv.invoice_code} ${inv.student_name}`.toLocaleLowerCase('vi').includes(search.toLocaleLowerCase('vi'))).map((inv) => (
               <tr key={inv.id}>
                 <td className="font-medium text-primary">{inv.invoice_code}</td>
                 <td>{inv.student_name}</td>
@@ -148,7 +141,7 @@ export function Finance() {
                   </span>
                 </td>
                 <td className="text-right">
-                  <button className="action-btn">Chi tiết</button>
+                  <button className="action-btn" onClick={() => setDetails(inv)}>Chi tiết</button>
                 </td>
               </tr>
             ))}
@@ -156,11 +149,13 @@ export function Finance() {
         </table>
       </div>
 
+      {details && <Modal title="Chi tiết hóa đơn" onClose={() => setDetails(null)}><div className="modal-content glass-panel"><h2 className="text-h2">{details.invoice_code}</h2><p>{details.student_name}</p><p>{formatCurrency(details.amount)}</p><p>{details.status === 'paid' ? 'Đã thu' : details.status === 'pending' ? 'Chưa thu' : 'Quá hạn'}</p><Button onClick={() => setDetails(null)}>Đóng</Button></div></Modal>}
       {isModalOpen && (
-        <div className="modal-overlay">
+        <Modal title="Tạo hóa đơn" onClose={() => { if (!saving) setIsModalOpen(false); }}>
           <div className="modal-content glass-panel animate-fade-in">
             <h2 className="text-h2 mb-4">Tạo Hóa đơn mới</h2>
             <form onSubmit={handleSubmit} className="form-layout">
+              {error && <p role="alert" className="feedback-error">{error}</p>}
               <div className="form-group">
                 <label>Chọn Học sinh (*)</label>
                 <select 
@@ -180,6 +175,8 @@ export function Finance() {
                 <input 
                   required 
                   type="number" 
+                  min="1"
+                  step="1"
                   className="form-input" 
                   value={formData.amount} 
                   onChange={(e) => setFormData({...formData, amount: e.target.value})} 
@@ -199,11 +196,11 @@ export function Finance() {
               </div>
               <div className="modal-actions mt-6">
                 <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Hủy</Button>
-                <Button type="submit" variant="primary">Lưu Hóa đơn</Button>
+                <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Đang lưu...' : 'Lưu Hóa đơn'}</Button>
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

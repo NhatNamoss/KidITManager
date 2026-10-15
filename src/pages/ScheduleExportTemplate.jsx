@@ -21,6 +21,7 @@ const COLORS = {
 };
 
 export const ScheduleExportTemplate = React.forwardRef(({ scheduleBlocks, applyDate }, ref) => {
+  const slots = [...new Set([...TIME_SLOTS.map(s => s.time), ...scheduleBlocks.map(b => b.timeKey)])].sort().map(time => TIME_SLOTS.find(s => s.time === time) || { time, label: '', icon: '', type: 'morning' });
   
   const getCellColor = (className) => {
     // Basic color matching based on class name or default to blue
@@ -60,7 +61,7 @@ export const ScheduleExportTemplate = React.forwardRef(({ scheduleBlocks, applyD
               </tr>
             </thead>
             <tbody>
-              {TIME_SLOTS.map((slot, index) => (
+              {slots.map((slot) => (
                 <tr key={slot.time}>
                   <td>
                     <div className="export-time-col">
@@ -77,13 +78,13 @@ export const ScheduleExportTemplate = React.forwardRef(({ scheduleBlocks, applyD
                     // Match the day string. Note: Our app uses "Chủ nhật", the template uses "CN"
                     const appDay = day === 'CN' ? 'Chủ nhật' : day;
                     
-                    const block = scheduleBlocks.find(b => b.day === appDay && b.timeKey === slot.time);
+                    const blocks = scheduleBlocks.filter(b => b.day === appDay && b.timeKey === slot.time);
                     
-                    if (block) {
+                    if (blocks.length) {
                       return (
-                        <td key={`${day}-${slot.time}`} style={{ backgroundColor: getCellColor(block.className) }}>
+                        <td key={`${day}-${slot.time}`} style={{ backgroundColor: getCellColor(blocks[0].className) }}>
                           <div className="export-cell">
-                            {block.className}
+                            {blocks.map(b => b.className).join(' / ')}
                           </div>
                         </td>
                       );

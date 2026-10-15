@@ -1,0 +1,10 @@
+*.db
+*.sql
+*.zip
+sqlite/
+backend/
+tests/
+scripts/test-server.js
+.env*
+!.env.example
+docs/

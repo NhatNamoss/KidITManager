@@ -1,5 +1,8 @@
 import express from 'express';
-import cors from 'cors';
+import { randomUUID } from 'node:crypto';
+import { registerAuth } from '../server/auth.js';
+import { registerTeachingSessions } from '../server/teaching-sessions.js';
+import { validDate } from '../server/session-domain.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import mysql from 'mysql2';
@@ -11,25 +14,36 @@ const app = express();
 // Vercel serverless functions don't need app.listen()
 // const PORT = process.env.PORT || 5000;
 
-app.use(cors());
-app.use(express.json());
+app.disable('x-powered-by');
+app.use(express.json({ limit: '64kb' }));
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!['GET', 'HEAD'].includes(req.method) && req.headers.origin) {
+    const host = req.headers['x-forwarded-host'] || req.headers.host;
+    try { if (new URL(req.headers.origin).host !== host) return res.status(403).json({ error: 'Nguồn yêu cầu không hợp lệ.' }); }
+    catch { return res.status(403).json({ error: 'Nguồn yêu cầu không hợp lệ.' }); }
+  }
+  next();
+});
+registerAuth(app);
 
 // Serve static files from the React frontend app
 const frontendBuildPath = path.join(__dirname, '../dist');
 app.use(express.static(frontendBuildPath));
 
 const pool = mysql.createPool({
-  host: 'gateway01.ap-northeast-1.prod.aws.tidbcloud.com',
-  user: 'rQbjBTXsQq3GSBj.root',
-  password: 'BMDaBrCWt1BsmQUh',
-  database: 'kidit',
-  port: 4000,
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || 'kidit',
+  port: Number(process.env.DB_PORT || 4000),
   ssl: {
     minVersion: 'TLSv1.2',
     rejectUnauthorized: true
   },
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 3,
+  connectTimeout: 10000,
   queueLimit: 0
 });
 
@@ -40,9 +54,10 @@ const db = {
       params = [];
     }
     pool.query(sql, params, (err, results) => {
+      if (err) err.message = 'Không lưu được dữ liệu. Kiểm tra dữ liệu trùng hoặc thử lại.';
       if (err && !callback) console.error("Lỗi db.run:", err.message, sql);
       if (callback) {
-        const context = { lastID: results ? results.insertId : null };
+        const context = { lastID: results ? results.insertId : null, changes: results?.affectedRows || 0 };
         callback.call(context, err);
       }
     });
@@ -53,6 +68,7 @@ const db = {
       params = [];
     }
     pool.query(sql, params, (err, results) => {
+      if (err) err.message = 'Không tải được dữ liệu. Vui lòng thử lại.';
       if (callback) callback(err, results);
     });
   },
@@ -62,13 +78,14 @@ const db = {
       params = [];
     }
     pool.query(sql, params, (err, results) => {
+      if (err) err.message = 'Không tải được dữ liệu. Vui lòng thử lại.';
       if (callback) callback(err, results ? results[0] : null);
     });
   },
   serialize: (cb) => cb()
 };
 
-pool.getConnection((err, conn) => {
+if (process.env.INIT_DB === 'true') pool.getConnection((err, conn) => {
   if (err) {
     console.error('Lỗi khi kết nối MySQL:', err.message);
   } else {
@@ -99,7 +116,7 @@ function initDb() {
       capacity INTEGER
     )`);
 
-    db.run("ALTER TABLE classes ADD COLUMN ta TEXT", (err) => {
+    db.run("ALTER TABLE classes ADD COLUMN ta TEXT", (_err) => {
       // Bỏ qua lỗi nếu cột đã tồn tại
     });
 
@@ -146,7 +163,7 @@ function initDb() {
 
     db.run(`CREATE TABLE IF NOT EXISTS invoices (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      invoice_code TEXT UNIQUE,
+      invoice_code VARCHAR(80) UNIQUE,
       student_id INTEGER,
       amount INTEGER,
       status TEXT,
@@ -159,13 +176,42 @@ function initDb() {
 }
 
 // ---------------- DASHBOARD STATS ----------------
+registerTeachingSessions(app, pool);
+
+app.use('/api', (req, res, next) => {
+  if (['POST', 'PUT'].includes(req.method)) {
+    const body = req.body || {};
+    if (['/students', '/teachers', '/classes'].some(p => req.path === p || new RegExp(`^${p}/\\d+$`).test(req.path))) {
+      if (typeof body.name !== 'string' || !body.name.trim() || body.name.length > 255)
+        return res.status(400).json({ error: 'Tên không được để trống và tối đa 255 ký tự.' });
+      body.name = body.name.trim();
+      for (const field of ['phone', 'parentName', 'parentPhone', 'teacher', 'ta', 'schedule', 'room']) {
+        if (body[field] != null && (typeof body[field] !== 'string' || body[field].length > 2000))
+          return res.status(400).json({ error: `Trường ${field} không hợp lệ.` });
+      }
+    }
+    if (req.path.startsWith('/teachers') && ![1, 2].includes(Number(body.role))) return res.status(400).json({ error: 'Vai trò không hợp lệ.' });
+    if (/^\/classes(?:\/\d+)?$/.test(req.path) && body.capacity !== '' && body.capacity != null && (!Number.isInteger(Number(body.capacity)) || Number(body.capacity) < 1))
+      return res.status(400).json({ error: 'Sĩ số phải là số nguyên dương.' });
+    if (req.path === '/invoices' && (!Number.isSafeInteger(Number(body.amount)) || Number(body.amount) <= 0 || !['paid', 'pending', 'overdue'].includes(body.status)))
+      return res.status(400).json({ error: 'Số tiền phải là số nguyên dương và trạng thái phải hợp lệ.' });
+    if (req.path.endsWith('/attendance') || req.path.endsWith('/teacher-attendance')) {
+      if (!validDate(body.date) || !['present', 'absent'].includes(body.status)) return res.status(400).json({ error: 'Ngày hoặc trạng thái điểm danh không hợp lệ.' });
+    }
+  }
+  next();
+});
+
 app.get('/api/dashboard/stats', (req, res) => {
   const stats = {};
   db.get("SELECT COUNT(*) as count FROM students", [], (err, row) => {
+    if (err) return res.status(500).json({ error: 'Không tải được thống kê.' });
     stats.totalStudents = row ? row.count : 0;
     db.get("SELECT COUNT(*) as count FROM classes", [], (err, row) => {
+      if (err) return res.status(500).json({ error: 'Không tải được thống kê.' });
       stats.totalClasses = row ? row.count : 0;
       db.get("SELECT SUM(amount) as total FROM invoices WHERE status = 'paid'", [], (err, row) => {
+        if (err) return res.status(500).json({ error: 'Không tải được thống kê.' });
         stats.revenue = row ? row.total || 0 : 0;
         res.json(stats);
       });
@@ -226,7 +272,8 @@ app.get('/api/classes/:id', (req, res) => {
 });
 
 app.post('/api/classes', (req, res) => {
-  const { name, teacher, ta, schedule, room, capacity } = req.body;
+  const { name, teacher, ta, schedule, room } = req.body;
+  const capacity = req.body.capacity === '' || req.body.capacity == null ? null : Number(req.body.capacity);
   db.run(`INSERT INTO classes (name, teacher, ta, schedule, room, capacity) VALUES (?, ?, ?, ?, ?, ?)`,
     [name, teacher, ta, schedule, room, capacity],
     function(err) {
@@ -237,7 +284,8 @@ app.post('/api/classes', (req, res) => {
 });
 
 app.put('/api/classes/:id', (req, res) => {
-  const { name, teacher, ta, schedule, room, capacity } = req.body;
+  const { name, teacher, ta, schedule, room } = req.body;
+  const capacity = req.body.capacity === '' || req.body.capacity == null ? null : Number(req.body.capacity);
   db.run(`UPDATE classes SET name = ?, teacher = ?, ta = ?, schedule = ?, room = ?, capacity = ? WHERE id = ?`,
     [name, teacher, ta, schedule, room, capacity, req.params.id],
     function(err) {
@@ -278,8 +326,9 @@ app.put('/api/teachers/:id', (req, res) => {
 });
 
 app.delete('/api/teachers/:id', (req, res) => {
-  db.run(`DELETE FROM teachers WHERE id = ?`, [req.params.id], function(err) {
+  db.run(`DELETE FROM teachers WHERE id = ? AND NOT EXISTS (SELECT 1 FROM session_staff WHERE teacher_id = ?)`, [req.params.id, req.params.id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
+    if (!this.changes) return res.status(409).json({ error: 'Không thể xóa nhân sự đã có công giảng dạy hoặc không tồn tại.' });
     res.json({ success: true });
   });
 });
@@ -327,7 +376,10 @@ app.get('/api/classes/:id/attendance', (req, res) => {
 
 app.post('/api/classes/:id/attendance', (req, res) => {
   const { date, student_id, status } = req.body;
-  db.run(`INSERT INTO attendance (class_id, student_id, date, status) VALUES (?, ?, ?, ?) 
+  db.get('SELECT id FROM class_students WHERE class_id=? AND student_id=?', [req.params.id, student_id], (error, row) => {
+    if (error) return res.status(500).json({ error: 'Không kiểm tra được danh sách lớp.' });
+    if (!row) return res.status(400).json({ error: 'Học sinh không có trong lớp.' });
+    db.run(`INSERT INTO attendance (class_id, student_id, date, status) VALUES (?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE status = VALUES(status)`,
     [req.params.id, student_id, date, status],
     function(err) {
@@ -335,6 +387,7 @@ app.post('/api/classes/:id/attendance', (req, res) => {
       res.json({ success: true });
     }
   );
+  });
 });
 
 // ---------------- TEACHER ATTENDANCE ----------------
@@ -346,17 +399,7 @@ app.get('/api/classes/:id/teacher-attendance', (req, res) => {
   });
 });
 
-app.post('/api/classes/:id/teacher-attendance', (req, res) => {
-  const { date, teacher_name, role, status } = req.body;
-  db.run(`INSERT INTO teacher_attendance (class_id, teacher_name, role, date, status) VALUES (?, ?, ?, ?, ?) 
-          ON DUPLICATE KEY UPDATE teacher_name = VALUES(teacher_name), status = VALUES(status)`,
-    [req.params.id, teacher_name, role, date, status],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ success: true });
-    }
-  );
-});
+app.post('/api/classes/:id/teacher-attendance', (req, res) => res.status(410).json({ error: 'Hãy ghi công bằng chức năng Buổi dạy & chấm công. Dữ liệu cũ chỉ dùng để đối chiếu.' }));
 
 // ---------------- INVOICES ----------------
 app.get('/api/invoices', (req, res) => {
@@ -370,7 +413,7 @@ app.get('/api/invoices', (req, res) => {
 
 app.post('/api/invoices', (req, res) => {
   const { student_id, amount, status } = req.body;
-  const invoice_code = 'INV-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
+  const invoice_code = 'INV-' + randomUUID();
   db.run(`INSERT INTO invoices (invoice_code, student_id, amount, status) VALUES (?, ?, ?, ?)`,
     [invoice_code, student_id, amount, status],
     function(err) {
@@ -381,6 +424,11 @@ app.post('/api/invoices', (req, res) => {
 });
 
 // Anything that doesn't match the API routes should be served the index.html for SPA routing
+app.use('/api', (req, res) => res.status(404).json({ error: 'API không tồn tại.' }));
+app.use((error, req, res, _next) => {
+  console.error('API error:', error.code || error.name);
+  res.status(error.status || 500).json({ error: error.status ? error.message : 'Không lưu hoặc tải được dữ liệu. Vui lòng thử lại.' });
+});
 // Notice: Vercel routes will handle SPA fallback via vercel.json, but keeping this for local dev
 app.use((req, res) => {
   res.sendFile(path.join(frontendBuildPath, 'index.html'));

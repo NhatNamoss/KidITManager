@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import html2canvas from 'html2canvas';
 import { Download } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { ScheduleExportTemplate } from './ScheduleExportTemplate';
 import './Schedule.css'; // Timetable styles
+import { api } from '../lib/api';
+import { Link } from 'react-router-dom';
 
 const DAYS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
 const TIME_SLOTS = [
@@ -16,15 +17,17 @@ const TIME_SLOTS = [
 
 export function Schedule() {
   const [scheduleBlocks, setScheduleBlocks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [exporting, setExporting] = useState(false);
   const exportRef = useRef(null);
 
   useEffect(() => {
-    fetch('/api/classes')
-      .then(res => res.json())
+    api('/api/classes')
       .then(data => {
         parseSchedules(data);
       })
-      .catch(err => console.error(err));
+      .catch(err => setError(err.message)).finally(() => setLoading(false));
   }, []);
 
   const parseSchedules = (classesData) => {
@@ -61,10 +64,13 @@ export function Schedule() {
   };
 
   const colorClasses = ['bg-blue', 'bg-green', 'bg-purple', 'bg-orange', 'bg-pink', 'bg-teal'];
+  const timeSlots = [...new Set([...TIME_SLOTS, ...scheduleBlocks.map(b => b.timeKey)])].sort();
 
   const handleExport = async () => {
     if (exportRef.current) {
+      setExporting(true);
       try {
+        const html2canvas = (await import('html2canvas')).default;
         const canvas = await html2canvas(exportRef.current, {
           scale: 2, // High resolution for better quality
           useCORS: true,
@@ -78,7 +84,7 @@ export function Schedule() {
       } catch (err) {
         console.error('Lỗi khi xuất ảnh:', err);
         alert('Không thể xuất ảnh, vui lòng thử lại.');
-      }
+      } finally { setExporting(false); }
     }
   };
 
@@ -89,12 +95,14 @@ export function Schedule() {
           <h1 className="text-h1">Thời khóa biểu toàn trung tâm</h1>
           <p className="text-muted mt-2">Tổng quan lịch học của tất cả các lớp trong tuần.</p>
         </div>
-        <Button onClick={handleExport} variant="primary">
+        <Button onClick={handleExport} variant="primary" disabled={loading || Boolean(error) || exporting}>
           <Download size={18} className="mr-2" />
-          Xuất ảnh
+          {exporting ? 'Đang xuất ảnh...' : 'Xuất ảnh'}
         </Button>
       </div>
 
+      {error && <p role="alert" className="feedback-error">{error}</p>}
+      {loading && <p role="status">Đang tải thời khóa biểu...</p>}
       <div className="schedule-container glass-panel p-4">
         <div className="schedule-fixed-grid">
           {/* Header Row */}
@@ -104,7 +112,7 @@ export function Schedule() {
           ))}
 
           {/* Time Slots Rows */}
-          {TIME_SLOTS.map((slot) => (
+          {timeSlots.map((slot) => (
             <React.Fragment key={slot}>
               {/* Time Label Cell */}
               <div className="grid-time-cell">
@@ -119,7 +127,7 @@ export function Schedule() {
                 return (
                   <div key={`${day}-${slot}`} className="grid-body-cell">
                     {dayBlocks.map(block => (
-                      <div 
+                      <Link to={`/classes/${block.classId}`}
                         key={block.id} 
                         className={`class-block ${colorClasses[block.colorIndex]}`}
                       >
@@ -129,7 +137,7 @@ export function Schedule() {
                           {block.ta && ` / TG: ${block.ta}`}
                         </div>
                         <div className="block-detail text-small">P.{block.room || '—'}</div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 );

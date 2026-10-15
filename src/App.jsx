@@ -8,11 +8,13 @@ import { ClassDetail } from './pages/ClassDetail';
 import { Teachers } from './pages/Teachers';
 import { Finance } from './pages/Finance';
 import { Schedule } from './pages/Schedule';
+import { Payroll } from './pages/Payroll';
+import { AuthGate } from './components/AuthGate';
 import './index.css';
 
 function App() {
   return (
-    <BrowserRouter>
+    <AuthGate><BrowserRouter>
       <Routes>
           <Route path="/" element={<MainLayout />}>
           <Route index element={<Dashboard />} />
@@ -21,11 +23,13 @@ function App() {
           <Route path="students" element={<Students />} />
           <Route path="classes" element={<Classes />} />
           <Route path="classes/:id" element={<ClassDetail />} />
-          <Route path="courses" element={<div className="page-header"><h1 className="text-h1">Khóa học</h1></div>} />
+          <Route path="payroll" element={<Payroll />} />
+          <Route path="courses" element={<div><h1 className="text-h1">Khóa học</h1><p>Chưa có chức năng quản lý khóa học. Vui lòng sử dụng mục Lớp học.</p></div>} />
           <Route path="finance" element={<Finance />} />
+          <Route path="*" element={<div><h1 className="text-h1">Không tìm thấy trang</h1><a href="/">Về tổng quan</a></div>} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </BrowserRouter></AuthGate>
   );
 }
 

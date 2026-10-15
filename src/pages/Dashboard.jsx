@@ -1,182 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import { Users, GraduationCap, DollarSign, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import './Dashboard.css';
+import { api } from '../lib/api';
 
 export function Dashboard() {
-  const [stats, setStats] = useState({
-    totalStudents: 0,
-    totalClasses: 0,
-    revenue: 0
-  });
-  const [upcomingClasses, setUpcomingClasses] = useState([]);
-  const [currentTimeStr, setCurrentTimeStr] = useState('');
-
-  const getVietnamTime = () => {
-    return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
-  };
-
-  const processUpcomingClasses = (allClasses) => {
-    const now = getVietnamTime();
-    const currentDayIndex = now.getDay();
-    const dayMap = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-    const currentDayStr = dayMap[currentDayIndex];
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTimeTotal = currentHour * 60 + currentMinute;
-
-    let upcoming = [];
-
-    allClasses.forEach(cls => {
-      if (!cls.schedule) return;
-      
-      const slots = cls.schedule.split(', ');
-      slots.forEach(slot => {
-        const match = slot.match(/(.+) \((.+) - (.+)\)/);
-        if (match) {
-          const day = match[1];
-          const startTimeStr = match[2];
-          const endTimeStr = match[3];
-
-          // Only consider classes happening TODAY
-          if (day === currentDayStr) {
-            const [startH, startM] = startTimeStr.split(':').map(Number);
-            const [endH, endM] = endTimeStr.split(':').map(Number);
-            const startTimeTotal = startH * 60 + startM;
-            const endTimeTotal = endH * 60 + endM;
-
-            // Class hasn't ended yet
-            if (currentTimeTotal <= endTimeTotal) {
-              let status = 'Sắp bắt đầu';
-              if (currentTimeTotal >= startTimeTotal && currentTimeTotal <= endTimeTotal) {
-                status = 'Đang học';
-              }
-
-              upcoming.push({
-                ...cls,
-                displayStartTime: startTimeStr,
-                startTimeTotal,
-                status
-              });
-            }
-          }
-        }
-      });
-    });
-
-    // Sort by start time (earliest first)
-    upcoming.sort((a, b) => a.startTimeTotal - b.startTimeTotal);
-    setUpcomingClasses(upcoming.slice(0, 4));
-  };
-
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
+  const [now, setNow] = useState(new Date());
   useEffect(() => {
-    fetch('/api/dashboard/stats')
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(err => console.error(err));
-      
-    fetch('/api/classes')
-      .then(res => res.json())
-      .then(data => {
-        processUpcomingClasses(data);
-      })
-      .catch(err => console.error(err));
-
-    // Update time display every minute
-    const interval = setInterval(() => {
-      const vnTime = getVietnamTime();
-      setCurrentTimeStr(`${vnTime.getHours().toString().padStart(2, '0')}:${vnTime.getMinutes().toString().padStart(2, '0')} - ${dayMap[vnTime.getDay()]}`);
-    }, 60000);
-
-    const initialTime = getVietnamTime();
-    const dayMap = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-    setCurrentTimeStr(`${initialTime.getHours().toString().padStart(2, '0')}:${initialTime.getMinutes().toString().padStart(2, '0')} - ${dayMap[initialTime.getDay()]}`);
-
-    return () => clearInterval(interval);
+    const controller = new AbortController();
+    Promise.all([api('/api/dashboard/stats', { signal: controller.signal }), api('/api/classes', { signal: controller.signal })])
+      .then(([stats, classes]) => setData({ stats, classes })).catch(e => { if (!controller.signal.aborted) setError(e.message); });
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => { controller.abort(); clearInterval(timer); };
   }, []);
-
-  const statCards = [
-    { label: 'Tổng Học sinh', value: stats.totalStudents, icon: Users, color: 'primary', trend: '+12%' },
-    { label: 'Lớp Đang Mở', value: stats.totalClasses, icon: GraduationCap, color: 'secondary', trend: '+3' },
-    { label: 'Doanh thu', value: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(stats.revenue), icon: DollarSign, color: 'success', trend: '+8%' },
-    { label: 'Tỉ lệ Chuyên cần', value: '96%', icon: TrendingUp, color: 'warning', trend: '+2%' },
-  ];
-
-  return (
-    <div className="dashboard">
-      <div className="page-header flex justify-between items-end">
-        <div>
-          <h1 className="text-h1">Tổng quan</h1>
-          <p className="text-muted mt-2">Chào mừng trở lại! Dưới đây là thông tin về trung tâm hôm nay.</p>
-        </div>
-        <div className="text-right text-muted font-medium bg-surface-hover px-4 py-2 rounded-md border border-border">
-          {currentTimeStr}
-        </div>
-      </div>
-
-      <div className="stats-grid">
-        {statCards.map((stat, idx) => (
-          <div key={idx} className="stat-card glass-panel">
-            <div className={`stat-icon-wrapper bg-${stat.color}-light`}>
-              <stat.icon className={`text-${stat.color}`} size={24} />
-            </div>
-            <div className="stat-info">
-              <p className="stat-label text-muted">{stat.label}</p>
-              <h3 className="stat-value text-h2">{stat.value}</h3>
-            </div>
-            <div className="stat-trend">
-              <span className="trend-badge positive">{stat.trend}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="dashboard-content grid-2">
-        <div className="dashboard-card glass-panel">
-          <h3 className="text-h3 mb-4">Lớp học sắp diễn ra (Hôm nay)</h3>
-          <div className="upcoming-classes">
-            {upcomingClasses.length === 0 ? (
-              <p className="text-muted text-small p-4 text-center border border-dashed border-border rounded-md">Không có lớp học nào đang hoặc sắp diễn ra trong ngày hôm nay.</p>
-            ) : (
-              upcomingClasses.map((cls, idx) => {
-                return (
-                  <div key={cls.id || idx} className="class-item">
-                    <div className="class-time text-primary font-bold">{cls.displayStartTime}</div>
-                    <div className="class-info">
-                      <h4 className="font-semibold">{cls.name}</h4>
-                      <p className="text-muted text-sm mt-1">
-                        GV: {cls.teacher || 'Chưa xếp'} • Phòng {cls.room || '—'}
-                      </p>
-                    </div>
-                    <div className={`class-status ${cls.status === 'Đang học' ? 'status-active bg-primary text-white px-3 py-1 rounded-full' : 'status-upcoming bg-warning text-white px-3 py-1 rounded-full'}`}>
-                      {cls.status}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-        
-        <div className="dashboard-card glass-panel">
-          <h3 className="text-h3 mb-4">Hoạt động gần đây</h3>
-          <div className="recent-activities">
-             <div className="activity-item flex items-start gap-3 p-3 hover:bg-surface-hover rounded-md transition-colors">
-               <div className="activity-dot bg-success w-3 h-3 rounded-full mt-1.5"></div>
-               <div className="activity-info flex-1">
-                 <p className="text-sm"><strong>Lê Văn C</strong> đã đóng học phí môn Toán</p>
-                 <span className="text-xs text-muted block mt-1">10 phút trước</span>
-               </div>
-             </div>
-             <div className="activity-item flex items-start gap-3 p-3 hover:bg-surface-hover rounded-md transition-colors mt-2">
-               <div className="activity-dot bg-primary w-3 h-3 rounded-full mt-1.5"></div>
-               <div className="activity-info flex-1">
-                 <p className="text-sm"><strong>GV Nguyễn Văn A</strong> đã điểm danh lớp Toán 10</p>
-                 <span className="text-xs text-muted block mt-1">30 phút trước</span>
-               </div>
-             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+  const part = type => parts.find(p => p.type === type)?.value;
+  const day = { Mon: 'Thứ 2', Tue: 'Thứ 3', Wed: 'Thứ 4', Thu: 'Thứ 5', Fri: 'Thứ 6', Sat: 'Thứ 7', Sun: 'Chủ nhật' }[part('weekday')];
+  const currentMinutes = Number(part('hour')) * 60 + Number(part('minute'));
+  const upcoming = (data?.classes || []).flatMap(cls => (cls.schedule || '').split(', ').flatMap(slot => {
+    const match = slot.match(/(.+) \((\d{2}:\d{2}) - (\d{2}:\d{2})\)/);
+    if (!match || match[1] !== day) return [];
+    const minutes = time => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+    if (minutes(match[3]) <= currentMinutes) return [];
+    return [{ ...cls, start: match[2], end: match[3], active: minutes(match[2]) <= currentMinutes }];
+  })).sort((a, b) => a.start.localeCompare(b.start));
+  return <div className="dashboard"><div className="page-header"><h1 className="text-h1">Tổng quan</h1><p className="text-muted mt-2">{now.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} · Giờ Việt Nam</p></div>
+    {error && <p role="alert" className="feedback-error">{error}</p>}
+    {!data && !error && <p role="status">Đang tải tổng quan...</p>}
+    {data && <><div className="stats-grid">{[
+      ['Tổng học sinh', data.stats.totalStudents], ['Lớp hiện có', data.stats.totalClasses], ['Học phí đã thu', new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(data.stats.revenue)]
+    ].map(([label, value]) => <div className="stat-card glass-panel" key={label}><div><p className="text-muted">{label}</p><h2 className="text-h2">{value}</h2></div></div>)}</div>
+    <div className="dashboard-content grid-2"><section className="dashboard-card glass-panel"><h2 className="text-h3 mb-4">Lớp đang hoặc sắp học hôm nay</h2><p className="text-muted mb-4">Theo lịch mặc định. Người dạy thực tế được ghi ở từng buổi.</p>
+      {upcoming.length ? upcoming.map(cls => <Link key={`${cls.id}-${cls.start}`} to={`/classes/${cls.id}`} className="class-item"><strong>{cls.start}–{cls.end}</strong><div><h3>{cls.name}</h3><p className="text-muted">{cls.teacher || 'Chưa phân công'}</p></div><span>{cls.active ? 'Đang học' : 'Sắp bắt đầu'}</span></Link>) : <p className="text-muted">Không còn lớp theo lịch trong hôm nay.</p>}
+    </section><section className="dashboard-card glass-panel"><h2 className="text-h3 mb-4">Ghi nhận công giảng dạy</h2><p>Vào lớp học để ghi buổi dạy và chọn người thực tế đứng lớp. Đối chiếu buổi đã xác nhận trong bảng công trước khi phát lương.</p><p className="mt-4"><Link className="text-primary" to="/classes">Mở danh sách lớp</Link></p><p className="mt-4"><Link className="text-primary" to="/payroll">Xem bảng công tháng</Link></p></section></div></>}
+  </div>;
 }
