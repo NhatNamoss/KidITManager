@@ -4,6 +4,7 @@ import { QUIZ_SKILLS } from '../../shared/quiz';
 import { Leaderboard, Question, QuizError, RoomHeading, SkillLog } from './QuizShared';
 import { quizRequest, readQuizStorage, useQuizRoom, writeQuizStorage } from './useQuizRoom';
 import './quiz.css';
+import { QuizAudio } from './QuizAudio';
 
 function SkillControls({ room, now, busy, stale, act }) {
   const [targetId, setTargetId] = useState('');
@@ -21,7 +22,7 @@ function PlayerRoom({ code, token, exit }) {
   const team = room.teams.find(t => t.id === room.me.teamId);
   const effect = room.phase === 'question' && team.effect?.until > now ? team.effect : null;
   const frozen = effect?.kind === 'freeze';
-  return <><RoomHeading room={room} /><div className="quiz-player-identity"><p><strong>{room.me.name}</strong> · {team.name}{team.captainId === room.me.id && ' · Đội trưởng'}</p><button className="quiz-link" onClick={exit}>Đổi phòng</button></div><QuizError>{error}</QuizError>{stale && <p role="status" className="quiz-notice">Đang kết nối lại. Chờ đồng bộ trước khi trả lời; nếu bạn vừa gửi đáp án, hệ thống sẽ kiểm tra kết quả đã nhận.</p>}
+  return <><RoomHeading room={room}><QuizAudio room={room} now={now} stale={stale} /></RoomHeading><div className="quiz-player-identity"><p><strong>{room.me.name}</strong> · {team.name}{team.captainId === room.me.id && ' · Đội trưởng'}</p><button className="quiz-link" onClick={exit}>Đổi phòng</button></div><QuizError>{error}</QuizError>{stale && <p role="status" className="quiz-notice">Đang kết nối lại. Chờ đồng bộ trước khi trả lời; nếu bạn vừa gửi đáp án, hệ thống sẽ kiểm tra kết quả đã nhận.</p>}
     {room.phase === 'lobby' && <section className="quiz-waiting"><p>Bạn đã vào phòng</p><h1>Sẵn sàng cùng {team.name}!</h1><p>Giáo viên sẽ bắt đầu khi đủ người. Mỗi câu đúng mang về 100 điểm cho đội.</p><p>Đội có tỉ lệ đúng cao nhất nhận kỹ năng. Đội trưởng có thể dùng kỹ năng từ câu tiếp theo.</p></section>}
     {room.phase === 'finished' && <section className="quiz-finale"><p>Đã hoàn thành trận đấu</p><h1>{team.score === Math.max(...room.teams.map(t => t.score)) ? 'Đội của bạn dẫn đầu!' : 'Cảm ơn bạn đã cùng đội thi đấu!'}</h1><p>{team.name} giành được {team.score} điểm.</p><Link className="quiz-button" to="/play">Tham gia phòng khác</Link></section>}
     {room.question && <div className={`quiz-play-surface ${frozen ? 'quiz-frozen' : ''}`}>

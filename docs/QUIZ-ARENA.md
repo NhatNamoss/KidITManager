@@ -18,6 +18,14 @@
 - Đội trưởng chọn kỹ năng trong câu đang mở; thưởng của một vòng dùng được từ vòng sau. Đóng băng khóa trả lời cả đội đối thủ 3 giây, được kiểm tra ở máy chủ. Cầu lửa che một phần đáp án 4 giây. Lá chắn chặn một đòn, hết hiệu lực khi đóng câu.
 - Sau một đòn tấn công, đội mục tiêu được bảo vệ 8 giây. Không thể tự tấn công, gửi trùng đáp án, dùng kỹ năng khi không phải đội trưởng, hoặc gửi thao tác cho câu cũ.
 
+## Âm thanh vòng chơi
+
+Mỗi máy có nút **Bật âm thanh** trong đầu phòng. Cần bấm trên từng máy/tab sau khi mở hoặc tải lại để trình duyệt cho phép phát. Có nhạc nền nhẹ trong câu hỏi, âm mở câu, tiếng đếm 5 giây cuối, báo đã gửi đáp án, báo đúng/sai khi công bố kết quả, hiệu ứng kỹ năng và âm kết thúc trận.
+
+Mở **Tùy chỉnh âm thanh** để chỉnh âm lượng 0–100%, bật/tắt riêng nhạc nền hoặc **Nghe thử**. Âm lượng được nhớ trên trình duyệt; mặc định 35%. Nút tắt dừng cả các nốt đã lên lịch. Nhạc dừng khi đóng câu, mất đồng bộ, ẩn tab hoặc rời phòng; không phát lại toàn bộ âm sự kiện khi kết nối lại.
+
+Âm thanh được tạo tại máy người dùng bằng Web Audio, không tải tệp âm thanh bên ngoài, không cần bảng database mới hoặc dịch vụ âm thanh riêng trên Vercel.
+
 ## Đồng bộ và lưu trữ
 
 Trạng thái phòng nằm trong bảng MySQL `quiz_rooms`, tương thích mô hình Express/Vercel hiện tại. Mỗi thay đổi cập nhật theo phiên bản và thử lại có khoảng chờ khi xung đột; không dùng bộ nhớ của một tiến trình làm nguồn dữ liệu trận. Các máy lấy trạng thái khoảng mỗi 900ms. Đồng hồ dựa trên mốc thời gian máy chủ.

@@ -4,13 +4,25 @@ Ngày kiểm tra: 17/10/2026. Phạm vi: mã nguồn trong workspace, API fixtur
 
 ## Kết quả kỹ thuật
 
-- PASS: `npm test`, 32/32 kiểm thử, gồm 7 kiểm thử mới về quiz và kiểm tra API thực tế chặn người chưa đăng nhập/cross-origin.
+- PASS: `npm test`, 37/37 kiểm thử, gồm 7 kiểm thử quiz, 5 kiểm thử âm thanh và kiểm tra API thực tế chặn người chưa đăng nhập/cross-origin.
 - PASS: `npm run build`, Vite hoàn tất. Cảnh báo chunk lớn nằm ở `classroom-scene`, không có lỗi build.
 - PASS: `git diff --check`; `node --check` cho service, domain và script migration quiz.
 - PASS: một đợt 80 học sinh đồng thời vào phòng và trả lời trong fixture; đủ 80 đáp án, mỗi đội 4000 điểm, không mất cập nhật. Đây là kiểm tra logic đồng thời trên adapter SQLite, không phải kết quả đo tải MySQL/Vercel.
 - PASS: bộ tối đa 30 câu tiếng Việt, mỗi câu và đáp án đạt giới hạn độ dài, tạo phòng thành công dưới giới hạn JSON 192kb dành riêng cho route phòng.
 
 ## Thao tác trình duyệt đã kiểm tra
+
+### Bổ sung âm thanh vòng chơi
+
+- PASS: giáo viên và học sinh đều có Bật/Tắt âm thanh, Tùy chỉnh âm thanh, âm lượng, checkbox Nhạc nền mỗi câu và Nghe thử. Đã bấm các điều khiển; Nghe thử khóa khi tắt.
+- PASS: Web Audio trong trình duyệt chuyển từ suspended sang running sau thao tác bật, tạo Oscillator/Gain thật. Một câu 10 giây với nhạc nền tạo 25 oscillator cho các nốt nền, mở câu, đếm ngược và đóng câu; sau khi đóng vòng không tạo thêm node qua các lần đồng bộ.
+- PASS: rời phòng bằng nút Đổi phòng ghi nhận AudioContext chuyển sang closed. Console giáo viên và học sinh không có lỗi trong lượt kiểm tra âm thanh. Ảnh giao diện bổ sung: `outputs/quiz-audio-preview.png`.
+- PASS: kiểm thử xác minh âm không báo đúng/sai trước reveal, không lặp khi polling, không phát lại kỹ năng cũ, không phát kỹ năng của đội không liên quan, dừng nhạc theo deadline, dừng các nốt chờ khi tắt và đóng AudioContext khi rời phòng.
+- PASS: kiểm thử xác minh hỗ trợ từ chối/thiếu AudioContext không làm hỏng trò chơi. Phần bật thật chỉ thực hiện sau thao tác, mặc định tắt trên tab mới; âm lượng nhớ trên trình duyệt.
+- PASS: màn hình học sinh 390px có scrollWidth 375px; nút 46px, summary/range 44px, checkbox có nhãn bao vùng bấm 44px. Màu điều khiển kế thừa các cặp tương phản đã kiểm tra bên dưới.
+- PASS: âm được tạo tại máy người dùng, không thêm request âm thanh, dependency hoặc migration. Chỉ cần triển khai lại frontend để nhận phần bổ sung.
+
+### Luồng trắc nghiệm
 
 - PASS: giáo viên đăng nhập fixture, vào tab quiz, dùng bộ câu mẫu, thay thời gian, tạo phòng, sao chép link.
 - PASS: hai tab học sinh nhập tên, vào cùng mã, được chia hai đội, gửi đáp án riêng; mỗi học sinh ghi 100 điểm và nhận kỹ năng khi vòng đóng.

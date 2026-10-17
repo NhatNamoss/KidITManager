@@ -3,6 +3,7 @@ import { blankQuestion, phaseLabel, SAMPLE_QUESTIONS } from '../../shared/quiz';
 import { Leaderboard, Question, QuizError, RoomHeading, SkillLog } from './QuizShared';
 import { quizRequest, readQuizStorage, useQuizRoom, writeQuizStorage } from './useQuizRoom';
 import './quiz.css';
+import { QuizAudio } from './QuizAudio';
 
 function QuizEditor({ created }) {
   const [title, setTitle] = useState('Đấu trường kiến thức');
@@ -37,7 +38,7 @@ function HostRoom({ code, exit }) {
   if (!room) return <section className="quiz-panel"><p role="status">Đang tải phòng {code}...</p><QuizError>{error}</QuizError><button className="quiz-button quiz-secondary" onClick={exit}>Về danh sách phòng</button></section>;
   const url = `${window.location.origin}/play/${room.code}`;
   const control = action => act('action', { action });
-  return <div className="quiz-host-room"><RoomHeading room={room} />
+  return <div className="quiz-host-room"><RoomHeading room={room}><QuizAudio room={room} now={now} stale={stale} /></RoomHeading>
     <QuizError>{error}</QuizError>{stale && <p className="quiz-notice" role="status">Đang kết nối lại với phòng. Các nút điều khiển sẽ mở khi kết nối ổn định.</p>}
     <div className="quiz-share"><p>Học sinh mở <a className="quiz-link" href={url} target="_blank" rel="noreferrer">{url}</a>, nhập tên và tham gia.</p><button className="quiz-button quiz-secondary" onClick={async () => { try { await navigator.clipboard.writeText(url); setNotice('Đã sao chép link tham gia.'); } catch { setNotice('Không sao chép được. Hãy chọn link phía trên và sao chép thủ công.'); } }}>Sao chép link</button>{notice && <p role="status">{notice}</p>}</div>
     <div className="quiz-controlbar"><div className="quiz-actions">
