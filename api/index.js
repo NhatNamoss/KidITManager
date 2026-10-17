@@ -7,6 +7,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import mysql from 'mysql2';
 import { databaseConfig } from '../server/database-config.js';
+import { registerAccounts, createTeacherAccount } from '../server/accounts.js';
+import { registerPersonalAttendance } from '../server/personal-attendance.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -168,6 +170,8 @@ function initDb() {
 }
 
 // ---------------- DASHBOARD STATS ----------------
+registerAccounts(app, pool);
+registerPersonalAttendance(app, pool);
 registerTeachingSessions(app, pool);
 
 app.use('/api', (req, res, next) => {
@@ -289,21 +293,23 @@ app.put('/api/classes/:id', (req, res) => {
 
 // ---------------- TEACHERS ----------------
 app.get('/api/teachers', (req, res) => {
-  db.all('SELECT * FROM teachers ORDER BY role ASC, name ASC', [], (err, rows) => {
+  db.all('SELECT t.*, a.username FROM teachers t LEFT JOIN accounts a ON a.teacher_id=t.id ORDER BY t.role ASC, t.name ASC', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
 });
 
-app.post('/api/teachers', (req, res) => {
+app.post('/api/teachers', async (req, res, next) => {
   const { name, role, phone } = req.body;
-  db.run(`INSERT INTO teachers (name, role, phone) VALUES (?, ?, ?)`,
-    [name, role, phone],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: this.lastID, name, role, phone });
-    }
-  );
+  let connection;
+  try {
+    connection = await pool.promise().getConnection(); await connection.beginTransaction();
+    // Lock the account namespace so teachers with identical names get distinct logins.
+    await connection.query("SELECT id FROM accounts WHERE account_role='admin' ORDER BY id LIMIT 1 FOR UPDATE");
+    const [result] = await connection.query('INSERT INTO teachers (name,role,phone) VALUES (?,?,?)', [name, role, phone || '']);
+    const username = await createTeacherAccount(connection, result.insertId, name);
+    await connection.commit(); res.json({ id: result.insertId, name, role, phone, username });
+  } catch (error) { if (connection) await connection.rollback(); next(error); } finally { connection?.release(); }
 });
 
 app.put('/api/teachers/:id', (req, res) => {
@@ -318,7 +324,7 @@ app.put('/api/teachers/:id', (req, res) => {
 });
 
 app.delete('/api/teachers/:id', (req, res) => {
-  db.run(`DELETE FROM teachers WHERE id = ? AND NOT EXISTS (SELECT 1 FROM session_staff WHERE teacher_id = ?)`, [req.params.id, req.params.id], function(err) {
+  db.run(`DELETE FROM teachers WHERE id = ? AND NOT EXISTS (SELECT 1 FROM session_staff WHERE teacher_id = ?) AND NOT EXISTS (SELECT 1 FROM personal_attendance WHERE teacher_id = ?)`, [req.params.id, req.params.id, req.params.id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     if (!this.changes) return res.status(409).json({ error: 'Không thể xóa nhân sự đã có công giảng dạy hoặc không tồn tại.' });
     res.json({ success: true });
@@ -397,6 +403,7 @@ app.post('/api/invoices', (req, res) => {
 app.use('/api', (req, res) => res.status(404).json({ error: 'API không tồn tại.' }));
 app.use((error, req, res, _next) => {
   console.error('API error:', error.code || error.name);
+  if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Dữ liệu bị trùng. Tên tài khoản hoặc lượt chấm công này đã tồn tại.' });
   res.status(error.status || 500).json({ error: error.status ? error.message : 'Không lưu hoặc tải được dữ liệu. Vui lòng thử lại.' });
 });
 // Notice: Vercel routes will handle SPA fallback via vercel.json, but keeping this for local dev

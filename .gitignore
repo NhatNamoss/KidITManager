@@ -18,6 +18,7 @@ sqlite.zip
 .vercel
 dist
 dist-ssr
+outputs/
 *.local
 
 # Editor directories and files

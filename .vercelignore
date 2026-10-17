@@ -8,3 +8,5 @@ scripts/test-server.js
 .env*
 !.env.example
 docs/
+giao-dien-moi/
+outputs/

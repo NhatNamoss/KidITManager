@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, jsonBody, localDate } from '../lib/api';
+import { useAuth } from '../lib/auth';
+import { scheduleSlots } from '../../shared/class-schedule';
 import { Button } from './ui/Button';
 import { DateFields } from './DateFields';
 import './TeachingSessions.css';
 
 const labels = { draft: 'Chưa xác nhận', completed: 'Đã dạy, tính công', cancelled: 'Đã hủy, không tính công' };
-const empty = () => ({ date: localDate(), start_time: '15:15', end_time: '17:15', status: 'draft', notes: '', staff: [], version: 0 });
 export function TeachingSessions({ classInfo }) {
-  const [sessions, setSessions] = useState([]);
-  const [teachers, setTeachers] = useState([]);
+  const { user } = useAuth();
+  const [entries, setEntries] = useState([]);
+  const [legacy, setLegacy] = useState([]);
   const [form, setForm] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -18,62 +20,58 @@ export function TeachingSessions({ classInfo }) {
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const [rows, people] = await Promise.all([api(`/api/classes/${classInfo.id}/sessions`), api('/api/teachers')]);
-      setSessions(rows); setTeachers(people);
+      const [rows, old] = await Promise.all([api(`/api/classes/${classInfo.id}/personal-attendance`), api(`/api/classes/${classInfo.id}/sessions`)]);
+      setEntries(rows); setLegacy(old);
     } catch (e) { setError(e.message); } finally { setLoading(false); }
   }, [classInfo.id]);
   useEffect(() => { load(); }, [load]);
+  const slots = form ? scheduleSlots(classInfo.schedule, form.date) : [];
+  if (form?.id && form.slot && entries.some(e => e.id === form.id && e.date === form.date && e.slot === form.slot && e.start_time === form.start_time && e.end_time === form.end_time) && !slots.some(s => s.label === form.slot)) slots.push({ label: form.slot, start_time: form.start_time, end_time: form.end_time });
   const change = (key, value) => setForm(f => ({ ...f, [key]: value }));
-  const changeStaff = (index, key, value) => setForm(f => ({ ...f, staff: f.staff.map((s, i) => i === index ? { ...s, [key]: value } : s) }));
   const startNew = () => {
-    const initial = empty();
-    const schedule = classInfo.schedule?.match(/\((\d{2}:\d{2}) - (\d{2}:\d{2})\)/);
-    if (schedule) { initial.start_time = schedule[1]; initial.end_time = schedule[2]; }
-    for (const [role, name] of [['teacher', classInfo.teacher], ['ta', classInfo.ta]]) {
-      const teacher = teachers.find(t => t.name === name);
-      if (teacher && !initial.staff.some(s => s.teacher_id === teacher.id)) initial.staff.push({ teacher_id: teacher.id, role });
-    }
-    setForm(initial); setError(''); setNotice('');
+    const date = localDate(); const slot = scheduleSlots(classInfo.schedule, date)[0];
+    setForm({ date, slot: slot?.label || '', start_time: slot?.start_time || '', end_time: slot?.end_time || '', lesson: '', role: user.teacher_role === 2 ? 'ta' : 'teacher', status: 'completed', notes: '', version: 0 });
+    setError(''); setNotice('');
   };
   const save = async e => {
     e.preventDefault(); setSaving(true); setError(''); setNotice('');
     try {
-      const { id, ...payload } = form;
-      await api(`/api/classes/${classInfo.id}/sessions${id ? `/${id}` : ''}`, jsonBody(payload, id ? 'PUT' : 'POST'));
-      setForm(null); await load(); setNotice('Đã lưu buổi dạy và công của người thực tế đứng lớp.');
+      await api(`/api/classes/${classInfo.id}/personal-attendance${form.id ? `/${form.id}` : ''}`, jsonBody(form, form.id ? 'PUT' : 'POST'));
+      setForm(null); await load(); setNotice('Đã lưu công cá nhân của bạn. Người cùng ca tự chấm bằng tài khoản của họ.');
     } catch (err) { setError(err.message); } finally { setSaving(false); }
   };
   return <section className="teaching-panel glass-panel p-6" aria-labelledby="teaching-title">
-    <div className="session-heading"><div><h2 id="teaching-title" className="text-h2">Buổi dạy & chấm công</h2><p className="text-muted">Chọn người thực tế dạy từng ca. Chỉ buổi đã xác nhận mới được tổng hợp công.</p></div>
-      <Button onClick={startNew} disabled={loading || Boolean(form)}>Ghi buổi dạy</Button></div>
+    <div className="session-heading"><div><h2 id="teaching-title" className="text-h2">Chấm công cá nhân</h2><p className="text-muted">Mỗi giáo viên tự chấm bằng tài khoản của mình. Mọi tài khoản đều xem được tổng công.</p></div>
+      {user.teacher_id && <Button onClick={startNew} disabled={loading || !!form}>Chấm công của tôi</Button>}</div>
+    {!user.teacher_id && <p className="text-muted mt-2">Admin xem công và quản lý tài khoản. Để chấm công, đăng nhập bằng tài khoản giáo viên.</p>}
     <p className="mt-2"><Link className="text-primary" to="/payroll">Xem bảng công theo tháng</Link></p>
     {error && <div role="alert" className="feedback-error">{error} <button type="button" disabled={saving} onClick={() => { setForm(null); load(); }}>Bỏ chỉnh sửa và tải lại</button></div>}
     {notice && <p role="status" className="feedback-success">{notice}</p>}
-    {form && <form onSubmit={save} className="session-form" aria-label="Thông tin buổi dạy">
-      <h3 className="text-h3">{form.id ? 'Sửa buổi dạy' : 'Ghi buổi dạy mới'}</h3>
+    {form && <form onSubmit={save} className="session-form" aria-label="Chấm công cá nhân">
+      <h3 className="text-h3">{form.id ? 'Sửa công của tôi' : 'Ghi công mới'} · {user.name}</h3>
       <fieldset disabled={saving}><div className="session-fields">
-        <DateFields label="Ngày dạy" value={form.date} onChange={value => change('date', value)} />
-        <label>Bắt đầu<input required type="time" className="form-input" value={form.start_time} onChange={e => change('start_time', e.target.value)} /></label>
-        <label>Kết thúc<input required type="time" className="form-input" value={form.end_time} onChange={e => change('end_time', e.target.value)} /></label>
+        <DateFields label="Ngày dạy" value={form.date} onChange={date => {
+          const slot = scheduleSlots(classInfo.schedule, date)[0];
+          setForm(f => ({ ...f, date, slot: slot?.label || '', start_time: slot?.start_time || '', end_time: slot?.end_time || '' }));
+        }} />
+        <label>Suất theo lịch lớp<select required className="form-input" value={form.slot} onChange={e => {
+          const slot = slots.find(s => s.label === e.target.value);
+          setForm(f => ({ ...f, slot: slot?.label || '', start_time: slot?.start_time || '', end_time: slot?.end_time || '' }));
+        }}><option value="">Chọn suất</option>{slots.map(s => <option key={s.label} value={s.label}>{s.label}</option>)}</select></label>
+        <label>Vai trò<select className="form-input" value={form.role} onChange={e => change('role', e.target.value)}><option value="teacher">Dạy chính</option><option value="ta">Trợ giảng</option></select></label>
         <label>Trạng thái<select className="form-input" value={form.status} onChange={e => change('status', e.target.value)}>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       </div>
-      <p className="text-muted mt-4">Mỗi người được ghi nhận 1 công cho mỗi buổi đã dạy. Chọn người thực tế dạy và vai trò; giờ bắt đầu/kết thúc chỉ để xác định ca.</p>
-      {form.staff.map((s, i) => <div className="staff-row" key={i}>
-        <label>Người thực tế dạy<select required className="form-input" value={s.teacher_id || ''} onChange={e => changeStaff(i, 'teacher_id', Number(e.target.value))}><option value="">Chọn nhân sự</option>{teachers.map(t => <option key={t.id} value={t.id}>{t.name} (#{t.id})</option>)}</select></label>
-        <label>Vai trò trong buổi<select className="form-input" value={s.role} onChange={e => changeStaff(i, 'role', e.target.value)}><option value="teacher">Dạy chính</option><option value="ta">Trợ giảng</option></select></label>
-        <Button type="button" variant="ghost" onClick={() => change('staff', form.staff.filter((_, index) => index !== i))}>Bỏ người</Button>
-      </div>)}
-      <Button type="button" variant="secondary" onClick={() => change('staff', [...form.staff, { teacher_id: '', role: 'teacher' }])}>Thêm người dạy / dạy thay</Button>
-      {!teachers.length && <p className="text-muted">Hãy thêm nhân sự ở mục Giáo viên trước khi xác nhận công.</p>}
-      <label className="session-notes">Ghi chú buổi dạy / dạy thay<textarea className="form-input" maxLength="2000" rows="3" value={form.notes} onChange={e => change('notes', e.target.value)} /></label>
-      <div className="flex gap-2"><Button type="submit" disabled={!form.date}>{saving ? 'Đang lưu...' : 'Lưu buổi dạy'}</Button><Button type="button" variant="ghost" onClick={() => setForm(null)}>Hủy chỉnh sửa</Button></div>
+      {!slots.length && <p className="feedback-error">Lớp chưa có suất trong ngày đã chọn. Hãy chọn ngày đúng lịch hoặc cập nhật lịch lớp.</p>}
+      <label className="session-notes">Tên bài học<input required className="form-input" maxLength={255} value={form.lesson} onChange={e => change('lesson', e.target.value)} /></label>
+      <label className="session-notes">Ghi chú<textarea className="form-input" maxLength={2000} rows={2} value={form.notes} onChange={e => change('notes', e.target.value)} /></label>
+      <p className="text-muted">Lớp: {classInfo.name}. Giờ dạy lấy theo suất đã chọn. Mỗi suất đã xác nhận được 1 công; chỉ xác nhận sau khi kết thúc.</p>
+      <div className="flex gap-2 mt-4"><Button type="submit" disabled={!form.date || !form.slot}>{saving ? 'Đang lưu...' : 'Lưu công của tôi'}</Button><Button type="button" variant="ghost" onClick={() => setForm(null)}>Hủy chỉnh sửa</Button></div>
       </fieldset></form>}
-    {loading ? <p role="status">Đang tải buổi dạy...</p> : sessions.length === 0 ? <p className="empty-message">Chưa ghi buổi dạy nào. Lịch phân công chỉ là gợi ý khi tạo buổi mới.</p> :
-      <div className="session-list">{sessions.map(s => <article className="session-item" key={s.id}>
-        <div><strong>{s.date.split('-').reverse().join('/')} · {s.start_time}–{s.end_time}</strong><p className="text-muted">{labels[s.status]}</p>
-          {s.staff.map(person => <p key={person.id}>{person.teacher_name} · {person.role === 'teacher' ? 'Dạy chính' : 'Trợ giảng'} · {s.status === 'completed' ? '1 công (1 buổi)' : 'Chưa tính công'}</p>)}
-          {s.notes && <p className="session-note-text text-muted">{s.notes}</p>}</div>
-        <Button variant="secondary" disabled={Boolean(form)} onClick={() => { setForm({ ...s, staff: s.staff.map(p => ({ teacher_id: p.teacher_id, role: p.role })) }); setError(''); setNotice(''); }}>Sửa / hủy buổi</Button>
+    {loading ? <p role="status">Đang tải công...</p> : entries.length === 0 ? <p className="empty-message">Chưa có lượt chấm công cá nhân trong lớp này.</p> :
+      <div className="session-list">{entries.map(s => <article className="session-item" key={s.id}>
+        <div><strong>{s.date.split('-').reverse().join('/')} · {s.start_time}–{s.end_time}</strong><p>{s.teacher_name} · {s.role === 'teacher' ? 'Dạy chính' : 'Trợ giảng'}</p><p>Bài học: {s.lesson}</p><p className="text-muted">{labels[s.status]} · {s.status === 'completed' ? '1 công' : 'Chưa tính công'}</p>{s.notes && <p className="session-note-text text-muted">{s.notes}</p>}</div>
+        {s.teacher_id === user.teacher_id && <Button variant="secondary" disabled={!!form} onClick={() => { setForm({ ...s }); setError(''); setNotice(''); }}>Sửa / hủy công của tôi</Button>}
       </article>)}</div>}
+    {!!legacy.length && <details className="mt-4"><summary>Buổi dạy trước khi chuyển sang tài khoản cá nhân ({legacy.length})</summary><p className="text-muted">Giữ nguyên để đối chiếu; công đã xác nhận vẫn có trong bảng tổng. Không chấm lại suất đã có công cũ.</p>{legacy.map(s => <article className="session-item" key={s.id}><div><strong>{s.date} · {s.start_time}–{s.end_time}</strong><p>{labels[s.status]}</p>{s.staff.map(p => <p key={p.id}>{p.teacher_name} · {p.role === 'teacher' ? 'Dạy chính' : 'Trợ giảng'}</p>)}{s.notes && <p>{s.notes}</p>}</div></article>)}</details>}
   </section>;
 }

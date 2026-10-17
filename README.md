@@ -2,32 +2,48 @@
 
 Ứng dụng quản lý học sinh, lớp học, lịch học, học phí và công giảng dạy. Frontend React/Vite, API Express trên Vercel, database MySQL/TiDB qua TLS.
 
+## Giao diện chính đã chuyển theo bản duyệt
+
+- Giao diện sổ điều phối KidIT nằm trong `src/redesign/`, dùng API và dữ liệu thật; không có thanh đổi vai trò hoặc dữ liệu minh họa.
+- Giữ tên lớp hiện có, chọn buổi theo lịch và hai mẫu xuất PNG dành cho phụ huynh/giáo viên. Không thêm tên chương trình vào lớp.
+- Học sinh có thể thuộc nhiều lớp; không chuyển/xóa các liên kết cũ khi sửa hồ sơ. Lớp không đặt sĩ số vẫn được giữ là không giới hạn.
+- Công cá nhân, nháp/hủy, tổng công và dữ liệu cũ để đối chiếu được nối với API. Các công cụ cũ giữ đồng bộ đồng hồ, chuông, popup, danh sách lớp, bốc thăm, chia nhóm và bảng điểm.
+- Sáng/tối lưu tùy chọn trên trình duyệt. Thư mục `giao-dien-moi/` được giữ để tham chiếu bản duyệt, không đưa lên hosting.
+- `KIDIT_API_TARGET` chỉ dành cho máy phát triển khi cần nối API kiểm thử, không thay đổi URL API của bản build. Ví dụ: API trong bộ nhớ ở port 5001, Vite kiểm thử ở port 5175; bản chính mặc định API port 5000.
+
 ## Chạy trên máy
 
 Yêu cầu Node.js 24 và database hiện có của ứng dụng.
 
 1. Chạy `npm ci`.
 2. Thông tin kết nối database cũ đã nằm trong `server/database-config.js`, được API và script migration dùng chung. Không cần tạo `.env` hoặc cấu hình `DB_*` trên Vercel.
-3. Sao lưu database rồi chạy `npm run db:migrate` trên database thử nghiệm trước. Script chỉ tạo ba bảng mới, có thể chạy lại; không chuyển đổi hoặc xóa điểm danh cũ. Script yêu cầu các bảng hiện có như `classes`, `teachers`, `teacher_attendance` đã tồn tại.
+3. Sao lưu database rồi chạy `npm run db:migrate` trên database thử nghiệm trước. Script tạo các bảng buổi dạy, tài khoản, phiên đăng nhập và công cá nhân; không xóa công cũ. Script tạo admin và tài khoản cho giáo viên chưa có tài khoản; chạy lại không đặt lại mật khẩu. Các bảng hiện có như `classes`, `teachers`, `teacher_attendance` phải tồn tại.
 4. Mở hai terminal: chạy `npm run dev:api` và `npm run dev`.
-5. Vào địa chỉ Vite hiển thị để sử dụng trực tiếp. Theo yêu cầu của chủ ứng dụng, web và API không yêu cầu đăng nhập; người truy cập có thể xem và sửa dữ liệu.
+5. Vào địa chỉ Vite hiển thị và đăng nhập. Admin mặc định: `admin` / `admin`. Giáo viên: họ tên không dấu viết liền, mật khẩu `kidit` (ví dụ Nguyễn Đăng Phát → `nguyendangphat`). Tên trùng được thêm số từ 2. Tên đăng nhập được hiển thị trong mục Giáo viên.
 
 Không bật `INIT_DB` trên Vercel. Migration là bước riêng trước khi triển khai; không chạy DDL trong mỗi lần khởi động serverless.
 
 ## Buổi dạy và chấm công
 
-1. Vào **Lớp học → Chi tiết → Ghi buổi dạy**.
-2. Nhập ngày, tháng, năm vào ba ô riêng, rồi chọn giờ bắt đầu và kết thúc. Phần điểm danh học sinh có ô chọn ngày có học, tháng và năm; ngày không nằm trong lịch lớp không xuất hiện. Lịch mặc định chỉ gợi ý giờ và nhân sự, có thể thay đổi cho từng buổi.
-3. Chọn người thực tế dạy. Mọi nhân sự đều có thể được chọn làm người dạy chính hoặc trợ giảng trong buổi đó, không bị khóa theo chức danh mặc định.
-4. Chọn từng người thực tế dạy hoặc dạy thay. **Mỗi người được 1 công cho một buổi đã xác nhận**, tách theo vai trò dạy chính/trợ giảng. Một người chỉ có một dòng trong cùng buổi; không nhập phút hoặc giờ công.
+1. Đăng nhập tài khoản giáo viên, vào **Lớp học → Chi tiết → Chấm công của tôi**.
+2. Chọn ngày và suất từ danh sách lấy theo lịch lớp của ngày đó. Giờ bắt đầu/kết thúc đi theo suất, không nhập tùy ý. Nhập tên bài học và chọn vai trò dạy chính/trợ giảng.
+3. Giáo viên được lấy từ phiên đăng nhập ở máy chủ, không được chấm hộ hoặc sửa công của người khác. Hai người cùng lớp, cùng suất tự chấm riêng.
+4. **Mỗi người được 1 công cho một suất đã xác nhận**. Không nhập phút/giờ công; hệ thống chặn một người chấm trùng giờ, kể cả công từ buổi dạy cũ.
 5. Chọn **Chưa xác nhận**, **Đã dạy, tính công**, hoặc **Đã hủy, không tính công**. Chỉ xác nhận sau giờ kết thúc theo giờ Việt Nam. Không hỗ trợ ca qua nửa đêm.
 6. Vào **Chấm công** để lọc tháng/nhân sự, đối chiếu từng buổi và xuất CSV mở bằng Excel.
 
 Số công được tính hoàn toàn theo buổi, không phụ thuộc thời lượng: dạy hai buổi được hai công. Giờ bắt đầu/kết thúc chỉ để phân biệt ca, kiểm tra trùng lịch và xác nhận buổi đã kết thúc. Bảng công và CSV đều dùng cột **Số công (buổi)**, không có cột phút/giờ công. Chưa tự quy đổi thành tiền lương vì chưa có đơn giá theo buổi/vai trò.
 
-Database cũ được giữ tương thích, không cần migration: trường phút cũ không còn dùng để tính công. Mỗi dòng nhân sự trong buổi đã xác nhận được tính một công, kể cả dữ liệu đã lưu từ trước.
+Các buổi dạy cũ được giữ nguyên, chỉ đọc, và vẫn được cộng theo từng nhân sự nếu đã xác nhận. Điểm danh giáo viên cũ thiếu giờ tiếp tục hiển thị riêng để đối chiếu, không tự cộng công.
 
-Một lớp không được có hai buổi đang hiệu lực trùng giờ. Có thể sửa buổi đã lưu hoặc đổi trạng thái thành đã hủy; không xóa cứng công. Hai người cùng sửa một buổi sẽ nhận cảnh báo xung đột thay vì âm thầm ghi đè. Mỗi lần lưu có bản ghi trong `session_revisions`.
+Có thể sửa/hủy công cá nhân của mình; không xóa cứng công. Phiên bản bản ghi được kiểm tra khi lưu để tránh ghi đè từ tab cũ. Sau khi lịch lớp đổi, bản ghi cũ vẫn giữ suất đã ghi nhận và có thể sửa bài học, trạng thái; đổi ngày/suất phải theo lịch mới.
+
+## Quản lý tài khoản
+
+- Thêm nhân sự ở mục Giáo viên tự tạo tài khoản trong cùng giao dịch. Mọi tài khoản giáo viên vẫn được quản lý lớp, giáo viên, học sinh, điểm danh học sinh, lịch học và các chức năng hiện có.
+- Admin có mục **Tài khoản**: tạo nhanh giáo viên mới kèm tài khoản, tạo tài khoản cho hồ sơ chưa liên kết, đổi tên đăng nhập và mật khẩu. Đổi họ tên hồ sơ không tự đổi tên đăng nhập.
+- Mật khẩu lưu bằng scrypt có salt; phiên đăng nhập dùng token ngẫu nhiên, cookie HttpOnly/SameSite, thời hạn 7 ngày. Đổi mật khẩu thu hồi các phiên của tài khoản đó. Admin chỉ xem công, không chấm hộ giáo viên.
+- Bảng tổng công và xuất CSV công khai cho mọi tài khoản đã đăng nhập, gồm bài học và suất. Người chưa đăng nhập không truy cập API dữ liệu.
 
 Điểm danh giáo viên kiểu cũ vẫn được giữ và hiển thị riêng trong bảng công để đối chiếu. Các dòng này chưa đủ giờ ca nên không tự cộng vào công mới. Điểm danh học sinh hiện vẫn theo ngày và độc lập với công giảng dạy.
 
@@ -60,18 +76,18 @@ Danh sách nhập và bảng điểm được lưu trên trình duyệt, không 
 
 1. Thông tin kết nối nằm sẵn trong `server/database-config.js` theo yêu cầu chủ ứng dụng. Khi đổi database, sửa file này.
 2. Không cần thêm biến môi trường database trên Vercel. File cấu hình chỉ được import bởi code phía máy chủ, không đưa vào frontend.
-3. Sao lưu database và chạy migration trên đúng database bằng `npm run db:migrate`. Kiểm tra ba bảng `teaching_sessions`, `session_staff`, `session_revisions` được tạo thành công.
+3. Sao lưu database và chạy migration trên đúng database bằng `npm run db:migrate`. Kiểm tra thêm `accounts`, `account_sessions`, `personal_attendance`, bên cạnh các bảng buổi dạy hiện có.
 4. Chạy `npm test`, `npm run lint`, `npm run build`, `npm audit`.
 5. Commit các thay đổi cần triển khai và đẩy lên repository liên kết với Vercel hoặc dùng quy trình deploy hiện có. Build command: `npm run build`; output: `dist`. Giữ `vercel.json` để `/api/*` về Express và các đường dẫn frontend về SPA.
-6. Sau deploy, thử bằng cửa sổ riêng tư: mở thẳng danh sách và bảng công không cần đăng nhập; thử buổi dạy trên môi trường Preview/database thử nghiệm trước khi nhập công thật.
+6. Sau deploy, thử bằng cửa sổ riêng tư: yêu cầu đăng nhập trước khi xem dữ liệu; kiểm tra admin quản lý tài khoản, giáo viên tự chấm công, hai tài khoản cùng suất ghi công riêng và xem bảng tổng trên môi trường thử nghiệm trước khi nhập công thật.
 
-Không cần cấu hình mật khẩu ứng dụng hoặc khóa phiên đăng nhập.
+Phiên đăng nhập được lưu trong database, không cần khóa phiên dùng chung qua biến môi trường.
 
 `git rm --cached` đã bỏ theo dõi các dump SQL, file `.db` và `sqlite.zip`; bản gốc vẫn ở máy. `.gitignore` và `.vercelignore` ngăn đưa các file đó vào những bản mới. Database từ xa vẫn được giữ nguyên.
 
 ## Kiểm tra tự động và giao diện
 
-- `npm test`: kiểm tra validation, dạy thay, nhiều ca trong ngày, trùng giờ, trạng thái hủy, tính công theo buổi không phụ thuộc thời lượng, bản sửa xung đột, hoàn tác giao dịch và truy cập đọc/ghi không cần đăng nhập.
+- `npm test`: kiểm tra đăng nhập, phân quyền admin, tạo/đổi tài khoản, thu hồi phiên, chấm công cá nhân, hai giáo viên cùng ca, chống chấm hộ/trùng giờ, suất theo lịch, bảng tổng, dữ liệu công cũ và các công cụ giảng dạy.
 - Các test API dùng SQLite trong bộ nhớ với adapter giao diện MySQL. Chúng kiểm tra hành vi và giao dịch của route, chưa thay thế chạy migration và kiểm tra khóa đồng thời trên MySQL/TiDB thật.
 - `node scripts/test-server.js` + `npm run dev`: chạy giao diện dùng trực tiếp với dữ liệu giả trong bộ nhớ, không kết nối database thật. Dừng server fixture trước khi chạy API thật vì cùng dùng port 5000.
 - Báo cáo rà soát và các giới hạn còn lại: [docs/APP-REVIEW-2026-10-15.md](docs/APP-REVIEW-2026-10-15.md).

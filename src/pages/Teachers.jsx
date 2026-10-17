@@ -139,6 +139,7 @@ export function Teachers() {
               
               <div className="teacher-info mt-3">
                 <h3 className="text-h3">{teacher.name}</h3>
+                {teacher.username && <p className="text-muted">Tài khoản: {teacher.username}</p>}
                 <span className={`role-badge role-${teacher.role}`}>
                   {teacher.role === 1 ? 'Giáo viên' : 'Trợ giảng'}
                 </span>

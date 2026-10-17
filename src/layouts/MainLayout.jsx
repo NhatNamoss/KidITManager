@@ -13,8 +13,11 @@ import {
 } from 'lucide-react';
 import './MainLayout.css';
 import { TimerIndicator } from '../components/CountdownTimer';
+import { useAuth } from '../lib/auth';
+import { Button } from '../components/ui/Button';
 
 export function MainLayout() {
+  const { user, logout, busy } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 768px)').matches);
   const menuRef = useRef(null);
@@ -36,6 +39,7 @@ export function MainLayout() {
     { path: '/finance', icon: CreditCard, label: 'Học phí' },
     { path: '/tools', icon: Wrench, label: 'Công cụ hỗ trợ' },
   ];
+  if (user.role === 'admin') navItems.push({ path: '/accounts', icon: UserCheck, label: 'Tài khoản' });
 
   const closeSidebar = () => setSidebarOpen(false);
 
@@ -81,6 +85,7 @@ export function MainLayout() {
             <span className="font-medium">Quản lý trung tâm KidIT</span>
           </div>
           <TimerIndicator />
+          <div className="account-identity"><span>{user.name} ({user.username})</span><Button variant="ghost" disabled={busy} onClick={logout}>Đăng xuất</Button></div>
         </header>
 
         <div className="page-wrapper animate-fade-in">

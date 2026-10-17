@@ -63,7 +63,7 @@ test('short and long sessions each count as one work unit, regardless of legacy 
   assert.ok(sessions.data.every(row => row.staff.every(person => !('minutes' in person))));
 });
 
-test('reading and recording teaching sessions requires no login or cookie', async t => {
+test('legacy service fixture preserves historic sessions for payroll regression checks', async t => {
   const { app, sqlite } = createFixture(); t.after(() => sqlite.close()); const request = await serve(app, t);
   assert.equal((await request('/api/classes', null, 'GET')).status, 200);
   assert.equal((await request('/api/classes/1/sessions', session())).status, 200);

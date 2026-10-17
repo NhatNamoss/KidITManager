@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-test('production API rejects invalid CRUD payloads before reaching database', async t => {
+test('production API requires login for CRUD and rejects foreign origins', async t => {
   process.env.NODE_ENV = 'production';
   process.env.INIT_DB = 'false';
   delete process.env.APP_PASSWORD;
@@ -17,10 +17,10 @@ test('production API rejects invalid CRUD payloads before reaching database', as
     ['/classes/1/attendance', { date: '2026-02-30', status: 'present', student_id: 1 }]
   ]) {
     const response = await fetch(`${base}/api${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    assert.equal(response.status, 400, path);
+    assert.equal(response.status, 401, path);
   }
   const foreign = await fetch(`${base}/api/students`, { method: 'POST', headers: { Origin: 'https://other.example', 'Content-Type': 'application/json' }, body: '{}' });
   assert.equal(foreign.status, 403);
   const missing = await fetch(`${base}/api/does-not-exist`);
-  assert.equal(missing.status, 404); assert.match(missing.headers.get('content-type'), /json/);
+  assert.equal(missing.status, 401); assert.match(missing.headers.get('content-type'), /json/);
 });

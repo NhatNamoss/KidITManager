@@ -1,7 +1,13 @@
 export async function api(url, options) {
-  const response = await fetch(url, options);
+  let response;
+  try { response = await fetch(url, options); }
+  catch (error) {
+    if (error.name === 'AbortError') throw error;
+    throw new Error('Không kết nối được với hệ thống. Hãy kiểm tra mạng và thử lại.');
+  }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
+    if (response.status === 401 && url !== '/api/auth/login' && url !== '/api/auth/me') window.dispatchEvent(new Event('kidit-auth-expired'));
     const error = new Error(data.error || 'Không tải hoặc lưu được dữ liệu.');
     error.status = response.status;
     throw error;

@@ -2,8 +2,12 @@ import { DatabaseSync } from 'node:sqlite';
 import express from 'express';
 import { registerTeachingSessions } from '../server/teaching-sessions.js';
 import { registerStudentAttendance } from '../server/student-attendance.js';
+import { registerAccounts, hashPassword } from '../server/accounts.js';
+import { registerPersonalAttendance } from '../server/personal-attendance.js';
+import { createTeacherAccount } from '../server/accounts.js';
+import { randomUUID } from 'node:crypto';
 
-export function createFixture() {
+export function createFixture({ auth = false } = {}) {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(`
     PRAGMA foreign_keys=ON;
@@ -16,17 +20,23 @@ export function createFixture() {
     CREATE TABLE session_staff (id INTEGER PRIMARY KEY AUTOINCREMENT, session_id INTEGER REFERENCES teaching_sessions(id), teacher_id INTEGER, teacher_name TEXT, role TEXT, minutes INTEGER, UNIQUE(session_id, teacher_id));
     CREATE TABLE session_revisions (id INTEGER PRIMARY KEY AUTOINCREMENT, session_id INTEGER REFERENCES teaching_sessions(id), payload TEXT);
     CREATE TABLE teacher_attendance (id INTEGER PRIMARY KEY, class_id INTEGER, teacher_name TEXT, role TEXT, date TEXT, status TEXT);
+    CREATE TABLE accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password_hash TEXT, account_role TEXT, teacher_id INTEGER UNIQUE REFERENCES teachers(id) ON DELETE CASCADE);
+    CREATE TABLE account_sessions (token_hash TEXT PRIMARY KEY, account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE, expires_at TEXT);
+    CREATE TABLE personal_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT,teacher_id INTEGER REFERENCES teachers(id),teacher_name TEXT,class_id INTEGER REFERENCES classes(id),date TEXT,start_time TEXT,end_time TEXT,slot TEXT,lesson TEXT,role TEXT,status TEXT,notes TEXT,version INTEGER DEFAULT 1,UNIQUE(teacher_id,class_id,date,start_time,end_time));
+    CREATE TABLE invoices (id INTEGER PRIMARY KEY AUTOINCREMENT,invoice_code TEXT UNIQUE,student_id INTEGER REFERENCES students(id),amount INTEGER,status TEXT,createdAt TEXT DEFAULT CURRENT_TIMESTAMP);
     INSERT INTO classes VALUES (1,'Lớp kiểm thử','GV kiểm thử A','GV kiểm thử B','Thứ 5 (15:15 - 17:15)','1',10);
     INSERT INTO teachers VALUES (1,'GV kiểm thử A',1,''),(2,'GV kiểm thử B',2,''),(3,'GV dạy thay C',1,'');
     INSERT INTO students VALUES (1,'Học sinh kiểm thử','','','');
     INSERT INTO class_students VALUES (1,1,1);
     INSERT INTO teacher_attendance VALUES (1,1,'GV kiểm thử A','teacher','2026-10-01','present');
   `);
-  const state = { failRevision: false };
+  const state = { failRevision: false, failAttendanceStudent: null };
   const connection = {
     async query(sql, params = []) {
       if (state.failRevision && sql.startsWith('INSERT INTO session_revisions')) throw new Error('injected failure');
-      const statement = sqlite.prepare(sql.replaceAll(' FOR UPDATE', '').replace(/ON DUPLICATE KEY UPDATE status = VALUES\(status\)/, 'ON CONFLICT(class_id, student_id, date) DO UPDATE SET status=excluded.status'));
+      if (state.failAttendanceStudent && sql.startsWith('INSERT INTO attendance') && Number(params[1]) === state.failAttendanceStudent) throw new Error('injected attendance failure');
+      params = params.map(p => p instanceof Date ? p.toISOString().slice(0, 19).replace('T', ' ') : p);
+      const statement = sqlite.prepare(sql.replaceAll(' FOR UPDATE', '').replace("CONCAT('personal-',a.id)", "('personal-' || a.id)").replace(/ON DUPLICATE KEY UPDATE status = VALUES\(status\)/, 'ON CONFLICT(class_id, student_id, date) DO UPDATE SET status=excluded.status'));
       if (/^SELECT/i.test(sql.trim())) return [statement.all(...params)];
       const result = statement.run(...params);
       return [{ insertId: Number(result.lastInsertRowid), affectedRows: result.changes }];
@@ -38,18 +48,35 @@ export function createFixture() {
   };
   const pool = { promise: () => ({ query: connection.query, getConnection: async () => connection }) };
   const app = express(); app.use(express.json());
+  if (auth) {
+    for (const [username, role, teacher] of [['admin', 'admin', null], ['gv1', 'teacher', 1], ['gv2', 'teacher', 2]]) {
+      sqlite.prepare('INSERT INTO accounts (username,password_hash,account_role,teacher_id) VALUES (?,?,?,?)').run(username, hashPassword(role === 'admin' ? 'admin' : 'kidit'), role, teacher);
+    }
+    registerAccounts(app, pool);
+    registerPersonalAttendance(app, pool);
+  }
   app.get('/api/classes', async (req, res) => res.json((await connection.query('SELECT * FROM classes'))[0]));
   app.get('/api/classes/:id', async (req, res) => res.json((await connection.query('SELECT * FROM classes WHERE id=?', [Number(req.params.id)]))[0][0]));
   app.put('/api/classes/:id', async (req, res) => {
     const { name, teacher, ta, schedule, room, capacity } = req.body;
-    await connection.query('UPDATE classes SET name=COALESCE(?,name),teacher=COALESCE(?,teacher),ta=COALESCE(?,ta),schedule=?,room=COALESCE(?,room),capacity=COALESCE(?,capacity) WHERE id=?',
-      [name ?? null, teacher ?? null, ta ?? null, schedule, room ?? null, capacity ?? null, Number(req.params.id)]);
+    const [[current]] = await connection.query('SELECT * FROM classes WHERE id=?',[Number(req.params.id)]);
+    await connection.query('UPDATE classes SET name=COALESCE(?,name),teacher=COALESCE(?,teacher),ta=COALESCE(?,ta),schedule=?,room=COALESCE(?,room),capacity=? WHERE id=?',
+      [name ?? null, teacher ?? null, ta ?? null, schedule, room ?? null, capacity === undefined ? current?.capacity ?? null : capacity, Number(req.params.id)]);
     res.json({ success: true });
   });
-  app.get('/api/teachers', async (req, res) => res.json((await connection.query('SELECT * FROM teachers'))[0]));
+  app.get('/api/teachers', async (req, res) => res.json((await connection.query('SELECT t.*,a.username FROM teachers t LEFT JOIN accounts a ON a.teacher_id=t.id'))[0]));
   app.get('/api/students', async (req, res) => res.json((await connection.query('SELECT * FROM students'))[0]));
   app.get('/api/classes/:id/students', async (req, res) => res.json((await connection.query('SELECT s.* FROM students s JOIN class_students cs ON cs.student_id=s.id WHERE cs.class_id=?', [Number(req.params.id)]))[0]));
-  app.get('/api/invoices', (req, res) => res.json([]));
+  app.get('/api/invoices', async (req,res) => res.json((await connection.query('SELECT i.*,s.name AS student_name FROM invoices i JOIN students s ON s.id=i.student_id'))[0]));
+  app.post('/api/students',async(req,res)=>{const {name,phone='',parentName='',parentPhone=''}=req.body;const [result]=await connection.query('INSERT INTO students (name,phone,parentName,parentPhone) VALUES (?,?,?,?)',[name,phone,parentName,parentPhone]);res.json({id:result.insertId});});
+  app.put('/api/students/:id',async(req,res)=>{const {name,phone='',parentName='',parentPhone=''}=req.body;await connection.query('UPDATE students SET name=?,phone=?,parentName=?,parentPhone=? WHERE id=?',[name,phone,parentName,parentPhone,req.params.id]);res.json({success:true});});
+  app.post('/api/classes',async(req,res)=>{const {name,teacher='',ta='',schedule='',room='',capacity=null}=req.body;const [result]=await connection.query('INSERT INTO classes (name,teacher,ta,schedule,room,capacity) VALUES (?,?,?,?,?,?)',[name,teacher,ta,schedule,room,capacity]);res.json({id:result.insertId});});
+  app.post('/api/teachers',async(req,res)=>{const {name,role,phone=''}=req.body;await connection.beginTransaction();try{const [result]=await connection.query('INSERT INTO teachers (name,role,phone) VALUES (?,?,?)',[name,Number(role),phone]);const username=await createTeacherAccount(connection,result.insertId,name);await connection.commit();res.json({id:result.insertId,username});}catch(error){await connection.rollback();throw error;}});
+  app.put('/api/teachers/:id',async(req,res)=>{const {name,role,phone=''}=req.body;await connection.query('UPDATE teachers SET name=?,role=?,phone=? WHERE id=?',[name,Number(role),phone,req.params.id]);res.json({success:true});});
+  app.delete('/api/teachers/:id',async(req,res)=>{await connection.query('DELETE FROM teachers WHERE id=?',[req.params.id]);res.json({success:true});});
+  app.post('/api/classes/:id/students',async(req,res)=>{await connection.query('INSERT INTO class_students (class_id,student_id) VALUES (?,?)',[req.params.id,req.body.student_id]);res.json({success:true});});
+  app.delete('/api/classes/:id/students/:studentId',async(req,res)=>{await connection.query('DELETE FROM class_students WHERE class_id=? AND student_id=?',[req.params.id,req.params.studentId]);res.json({success:true});});
+  app.post('/api/invoices',async(req,res)=>{const {student_id,amount,status}=req.body;await connection.query('INSERT INTO invoices (invoice_code,student_id,amount,status) VALUES (?,?,?,?)',[`INV-${randomUUID()}`,student_id,amount,status]);res.json({success:true});});
   app.get('/api/dashboard/stats', (req, res) => res.json({ totalStudents: 0, totalClasses: 1, revenue: 0 }));
   registerTeachingSessions(app, pool);
   registerStudentAttendance(app, pool);

@@ -8,6 +8,25 @@ function checkDate(schedule, date) {
 
 export function registerStudentAttendance(app, pool) {
   const db = pool.promise();
+  app.get('/api/class-enrollments', async (req, res, next) => {
+    try { const [rows] = await db.query('SELECT class_id,student_id FROM class_students ORDER BY class_id,student_id'); res.json(rows); }
+    catch (error) { next(error); }
+  });
+  app.post('/api/classes/:id/attendance/bulk', async (req, res, next) => {
+    let connection;
+    try {
+      const { date } = req.body || {};
+      if (!isCalendarDate(date) || date < ATTENDANCE_START_DATE) throw new InputError('Ngày điểm danh không hợp lệ.');
+      connection = await db.getConnection(); await connection.beginTransaction();
+      const [[cls]] = await connection.query('SELECT id,schedule FROM classes WHERE id=? FOR UPDATE', [req.params.id]);
+      if (!cls) throw new InputError('Không tìm thấy lớp.', 404);
+      checkDate(cls.schedule, date);
+      const [students] = await connection.query('SELECT student_id FROM class_students WHERE class_id=?', [req.params.id]);
+      for (const student of students) await connection.query(`INSERT INTO attendance (class_id, student_id, date, status) VALUES (?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE status = VALUES(status)`, [req.params.id, student.student_id, date, 'present']);
+      await connection.commit(); res.json({ success: true, count: students.length });
+    } catch (error) { if (connection) await connection.rollback(); next(error); } finally { connection?.release(); }
+  });
   app.get('/api/classes/:id/attendance-dates', async (req, res, next) => {
     try {
       if (typeof req.query.month !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(req.query.month)) throw new InputError('Tháng không hợp lệ.');

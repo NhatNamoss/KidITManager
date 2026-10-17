@@ -1,6 +1,14 @@
 export const ATTENDANCE_START_DATE = '2026-10-01';
 export const WEEKDAYS = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 
+export function scheduleSlots(schedule, date) {
+  const day = isCalendarDate(date) ? WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()] : null;
+  return Array.from((schedule || '').normalize('NFC').matchAll(/(Thứ [2-7]|Chủ nhật)\s*\(\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})\s*\)/gu))
+    .filter(m => (!day || m[1] === day) && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(m[2]) && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(m[3]) && m[2] < m[3])
+    .map(m => ({ label: `${m[1]} (${m[2]} - ${m[3]})`, start_time: m[2], end_time: m[3] }))
+    .filter((slot, i, all) => all.findIndex(s => s.label === slot.label) === i);
+}
+
 export function isCalendarDate(date) {
   return typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date) &&
     !Number.isNaN(Date.parse(date)) && new Date(date).toISOString().slice(0, 10) === date;

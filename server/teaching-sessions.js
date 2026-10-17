@@ -59,11 +59,18 @@ export function registerTeachingSessions(app, pool) {
   app.get('/api/payroll', async (req, res, next) => {
     try {
       const [from, to] = monthRange(req.query.month);
-      const [rows] = await db.query(`SELECT a.teacher_id, a.teacher_name, a.role, 1 AS work_units, s.id AS session_id, s.class_id, c.name AS class_name, s.date, s.start_time, s.end_time, s.notes
+      const [rows] = await db.query(`SELECT a.teacher_id, a.teacher_name, a.role, 1 AS work_units, s.id AS session_id, s.class_id, c.name AS class_name, s.date, s.start_time, s.end_time, s.notes, '' AS lesson, '' AS slot
         FROM session_staff a JOIN teaching_sessions s ON s.id=a.session_id JOIN classes c ON c.id=s.class_id
         WHERE s.status='completed' AND s.date>=? AND s.date<? ORDER BY s.date,s.start_time,a.teacher_name`, [from, to]);
       const [legacy] = await db.query(`SELECT a.*, c.name AS class_name FROM teacher_attendance a JOIN classes c ON c.id=a.class_id WHERE a.date>=? AND a.date<? ORDER BY a.date`, [from, to]);
-      res.json({ basis: 'session', rows, legacy });
+      let personal = [];
+      let entries = [];
+      if (req.user) {
+        [personal] = await db.query(`SELECT a.teacher_id,a.teacher_name,a.role,1 AS work_units,CONCAT('personal-',a.id) AS session_id,a.class_id,c.name AS class_name,a.date,a.start_time,a.end_time,a.notes,a.lesson,a.slot FROM personal_attendance a JOIN classes c ON c.id=a.class_id WHERE a.status='completed' AND a.date>=? AND a.date<? ORDER BY a.date,a.start_time,a.teacher_name`, [from, to]);
+        [entries] = await db.query('SELECT a.*,c.name AS class_name FROM personal_attendance a JOIN classes c ON c.id=a.class_id WHERE a.date>=? AND a.date<? ORDER BY a.date,a.start_time,a.teacher_name', [from, to]);
+      }
+      const combined = [...rows, ...personal].sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time) || a.teacher_name.localeCompare(b.teacher_name, 'vi'));
+      res.json({ basis: 'session', rows: combined, legacy, entries });
     } catch (error) { next(error); }
   });
 }

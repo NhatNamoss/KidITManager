@@ -1,0 +1,53 @@
+import { InputError, validateSession } from './session-domain.js';
+import { scheduleSlots } from '../shared/class-schedule.js';
+
+export function registerPersonalAttendance(app, pool) {
+  const db = pool.promise();
+  app.use('/api/classes/:id/sessions', (req, res, next) => {
+    if (['POST', 'PUT', 'DELETE'].includes(req.method)) return res.status(410).json({ error: 'Hãy dùng chấm công cá nhân bằng tài khoản giáo viên. Buổi dạy cũ chỉ dùng để đối chiếu.' });
+    next();
+  });
+  app.get('/api/classes/:id/personal-attendance', async (req, res, next) => {
+    try {
+      const [rows] = await db.query('SELECT * FROM personal_attendance WHERE class_id=? ORDER BY date DESC,start_time DESC,teacher_name', [req.params.id]);
+      res.json(rows);
+    } catch (error) { next(error); }
+  });
+  const save = async (req, res, next) => {
+    let connection;
+    try {
+      if (!req.user?.teacher_id) throw new InputError('Tài khoản admin chỉ xem tổng công. Hãy đăng nhập tài khoản giáo viên để tự chấm công.', 403);
+      const { lesson, slot, role, ...body } = req.body || {};
+      if (typeof lesson !== 'string' || !lesson.trim() || lesson.length > 255) throw new InputError('Hãy nhập tên bài học, tối đa 255 ký tự.');
+      const input = validateSession({ ...body, staff: [{ teacher_id: req.user.teacher_id, role }] });
+      connection = await db.getConnection(); await connection.beginTransaction();
+      const [[teacher]] = await connection.query('SELECT id,name FROM teachers WHERE id=? FOR UPDATE', [req.user.teacher_id]);
+      const [[cls]] = await connection.query('SELECT id,schedule FROM classes WHERE id=? FOR UPDATE', [req.params.id]);
+      if (!cls || !teacher) throw new InputError('Không tìm thấy lớp hoặc giáo viên.', 404);
+      let existing;
+      if (req.params.entryId) {
+        [[existing]] = await connection.query('SELECT * FROM personal_attendance WHERE id=? AND class_id=? FOR UPDATE', [req.params.entryId, cls.id]);
+        if (!existing) throw new InputError('Không tìm thấy lượt chấm công.', 404);
+        if (existing.teacher_id !== teacher.id) throw new InputError('Bạn chỉ được sửa công của mình.', 403);
+        if (existing.version !== input.version) throw new InputError('Dữ liệu vừa thay đổi. Hãy tải lại trước khi lưu.', 409);
+      }
+      const unchangedSlot = existing && existing.date === input.date && existing.slot === slot && existing.start_time === input.start_time && existing.end_time === input.end_time;
+      if (!unchangedSlot && !scheduleSlots(cls.schedule, input.date).some(s => s.label === slot && s.start_time === input.start_time && s.end_time === input.end_time)) throw new InputError('Hãy chọn suất có trong lịch lớp đúng ngày dạy.');
+      if (input.status !== 'cancelled') {
+        const [conflicts] = await connection.query("SELECT id FROM personal_attendance WHERE teacher_id=? AND date=? AND status<>'cancelled' AND start_time<? AND end_time>? AND id<>?", [teacher.id, input.date, input.end_time, input.start_time, existing?.id || 0]);
+        const [legacy] = await connection.query("SELECT s.id FROM session_staff a JOIN teaching_sessions s ON s.id=a.session_id WHERE a.teacher_id=? AND s.date=? AND s.status<>'cancelled' AND s.start_time<? AND s.end_time>?", [teacher.id, input.date, input.end_time, input.start_time]);
+        if (conflicts.length || legacy.length) throw new InputError('Bạn đã có bản ghi công trùng giờ này. Hãy sửa bản ghi hiện có.', 409);
+      }
+      const values = [teacher.name, input.date, input.start_time, input.end_time, slot, lesson.trim(), role, input.status, input.notes];
+      let id = existing?.id;
+      if (existing) await connection.query('UPDATE personal_attendance SET teacher_name=?,date=?,start_time=?,end_time=?,slot=?,lesson=?,role=?,status=?,notes=?,version=version+1 WHERE id=?', [...values, id]);
+      else {
+        const [result] = await connection.query('INSERT INTO personal_attendance (teacher_name,date,start_time,end_time,slot,lesson,role,status,notes,teacher_id,class_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)', [...values, teacher.id, cls.id]);
+        id = result.insertId;
+      }
+      await connection.commit(); res.json({ id, success: true });
+    } catch (error) { if (connection) await connection.rollback(); next(error); } finally { connection?.release(); }
+  };
+  app.post('/api/classes/:id/personal-attendance', save);
+  app.put('/api/classes/:id/personal-attendance/:entryId', save);
+}
