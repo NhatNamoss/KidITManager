@@ -1,0 +1,981 @@
+{
+  "clickThrough": [
+    "1440px: tổng quan, điều hướng và chuyển giao diện tối hoạt động.",
+    "Lịch: chuyển tuần sau.",
+    "Lịch: tuần trước, về hôm nay, đổi sang danh sách.",
+    "Lịch: lọc theo Nguyễn Đăng Phát.",
+    "Lịch: xuất CSV, thông báo thành công.",
+    "Điều hướng: lớp học hiển thị danh sách.",
+    "Tạo lớp: thiếu tên và nội dung bị chặn bằng kiểm tra bắt buộc.",
+    "Tạo lớp: lưu mẫu thành công và hiện trong danh sách.",
+    "Sửa lớp: nhập giờ bằng ô giờ bản địa, hệ thống hiển thị lỗi giờ kết thúc trước giờ bắt đầu.",
+    "Lớp: lưu sửa hợp lệ, tìm kiếm không khớp, xóa tìm kiếm và lọc giáo viên.",
+    "Lớp: mở sửa và đóng bằng Escape.",
+    "Điểm danh: đánh dấu có mặt và vắng cho hai học sinh riêng.",
+    "Điểm danh: cả lớp có mặt cập nhật tổng số.",
+    "Điểm danh: ngày không có lịch hiển thị hướng dẫn chọn ngày khác.",
+    "Chi tiết lớp: chuyển tab xem công của từng giáo viên.",
+    "Chấm công: thiếu suất/bài học bị chặn.",
+    "Chấm công: chọn suất theo lịch và lưu bài học minh họa thành công.",
+    "Chấm công: tổng công hiển thị cho giáo viên, có tổng hợp từng người.",
+    "Chấm công: lọc theo giáo viên.",
+    "Chấm công: lọc bản ghi chưa xác nhận.",
+    "Chấm công: xuất CSV kèm ngày, lớp, giờ, bài học và người dạy.",
+    "Chấm công: hủy công của mình, tổng đã xác nhận giảm tương ứng.",
+    "Học sinh: tìm theo tên.",
+    "Học sinh: lọc theo lớp.",
+    "Học sinh: thêm hồ sơ minh họa vào lớp còn chỗ.",
+    "Học sinh: mở sửa đúng hồ sơ và hủy thay đổi.",
+    "Giáo viên: thêm nhân sự và tự tạo tên đăng nhập trong bản mẫu.",
+    "Giáo viên: lọc trợ giảng.",
+    "Giáo viên: mở sửa hồ sơ, đóng bằng nút đóng.",
+    "Học phí: lọc phiếu chờ thu.",
+    "Học phí: mở chi tiết phiếu và đóng hộp thoại.",
+    "Học phí: tạo phiếu minh họa, cập nhật danh sách theo trạng thái.",
+    "Học phí: tìm kiếm không khớp có trạng thái trống.",
+    "Admin: có mục Tài khoản, danh sách giáo viên và tên đăng nhập.",
+    "Tài khoản: đổi tên đăng nhập minh họa; mật khẩu không nhập và không lưu.",
+    "Admin: tạo giáo viên kèm tài khoản ngay từ màn hình Tài khoản.",
+    "Đếm ngược: các mốc 3/5/10/15 phút và bắt đầu hoạt động.",
+    "Đếm ngược: cộng phút khi đang chạy và tạm dừng.",
+    "Đếm ngược: đặt lại về mốc đã chọn.",
+    "Bốc thăm: đọc danh sách và hiện một học sinh được chọn.",
+    "Chia nhóm: chia danh sách thành nhóm, giữ đủ tên.",
+    "Bảng điểm: cộng và trừ điểm từng đội.",
+    "Bảng điểm: đặt lại điểm cả hai đội.",
+    "Trạng thái dữ liệu: tải có nội dung thông báo.",
+    "Trạng thái dữ liệu: lỗi có hướng dẫn và nút thử lại.",
+    "Trạng thái dữ liệu: trống mở được biểu mẫu tạo lớp đầu tiên.",
+    "Đăng nhập mẫu: trường bắt buộc chặn nhập trống.",
+    "Đăng nhập mẫu: vào vai trò giáo viên bằng dữ liệu thử; không xác thực thật.",
+    "Điện thoại: Menu mở, Escape đóng và trả focus.",
+    "Điện thoại: Tất cả mở menu, chọn Giáo viên chuyển đúng trang.",
+    "Điện thoại: lịch tuần chuyển thành danh sách ngày, không cuộn ngang.",
+    "Điện thoại: hộp thoại chấm công vừa màn hình, Tab và Escape hoạt động.",
+    "Học sinh: lớp đầy bị chặn bằng hướng dẫn, không tự chuyển lớp âm thầm.",
+    "Học sinh: chọn Chưa xếp lớp rồi lưu được.",
+    "Chấm công: cùng người trùng giờ bị chặn, có hướng dẫn sửa bản ghi cũ.",
+    "Chấm công: ngày tương lai bị chặn trong bản mẫu.",
+    "Vai trò: chuyển sang admin khi đang ở bảng công tự mở Tổng công.",
+    "Bố cục: 11 màn hình ở 320/390/768/1100/1440px không cuộn ngang sau hiệu chỉnh.",
+    "Tương phản: 66 lượt rà trang/chế độ/cỡ màn hình không có cặp chữ dưới ngưỡng."
+  ],
+  "layouts": [
+    {
+      "page": "overview",
+      "content": 375,
+      "overflow": false,
+      "viewport": 375,
+      "width": 390
+    },
+    {
+      "page": "schedule",
+      "content": 375,
+      "overflow": false,
+      "viewport": 375,
+      "width": 390
+    },
+    {
+      "page": "classes",
+      "content": 375,
+      "overflow": false,
+      "viewport": 375,
+      "width": 390
+    },
+    {
+      "page": "class/4",
+      "content": 375,
+      "overflow": false,
+      "viewport": 375,
+      "width": 390
+    },
+    {
+      "page": "students",
+      "content": 375,
+      "overflow": false,
+      "viewport": 375,
+      "width": 390
+    },
+    {
+      "page": "teachers",
+      "content": 375,
+      "overflow": false,
+      "viewport": 375,
+      "width": 390
+    },
+    {
+      "page": "payroll",
+      "content": 375,
+      "overflow": false,
+      "viewport": 375,
+      "width": 390
+    },
+    {
+      "page": "finance",
+      "content": 375,
+      "overflow": false,
+      "viewport": 375,
+      "width": 390
+    },
+    {
+      "page": "accounts",
+      "content": 375,
+      "overflow": false,
+      "viewport": 375,
+      "width": 390
+    },
+    {
+      "page": "tools",
+      "content": 375,
+      "overflow": false,
+      "viewport": 375,
+      "width": 390
+    },
+    {
+      "page": "login",
+      "content": 375,
+      "overflow": false,
+      "viewport": 375,
+      "width": 390
+    },
+    {
+      "page": "overview",
+      "content": 753,
+      "overflow": false,
+      "viewport": 753,
+      "width": 768
+    },
+    {
+      "page": "schedule",
+      "content": 753,
+      "overflow": false,
+      "viewport": 753,
+      "width": 768
+    },
+    {
+      "page": "classes",
+      "content": 753,
+      "overflow": false,
+      "viewport": 753,
+      "width": 768
+    },
+    {
+      "page": "class/4",
+      "content": 753,
+      "overflow": false,
+      "viewport": 753,
+      "width": 768
+    },
+    {
+      "page": "students",
+      "content": 753,
+      "overflow": false,
+      "viewport": 753,
+      "width": 768
+    },
+    {
+      "page": "teachers",
+      "content": 753,
+      "overflow": false,
+      "viewport": 753,
+      "width": 768
+    },
+    {
+      "page": "payroll",
+      "content": 753,
+      "overflow": false,
+      "viewport": 753,
+      "width": 768
+    },
+    {
+      "page": "finance",
+      "content": 753,
+      "overflow": false,
+      "viewport": 753,
+      "width": 768
+    },
+    {
+      "page": "accounts",
+      "content": 753,
+      "overflow": false,
+      "viewport": 753,
+      "width": 768
+    },
+    {
+      "page": "tools",
+      "content": 768,
+      "overflow": false,
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "page": "login",
+      "content": 768,
+      "overflow": false,
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "page": "overview",
+      "content": 1085,
+      "overflow": false,
+      "viewport": 1085,
+      "width": 1100
+    },
+    {
+      "page": "schedule",
+      "content": 1085,
+      "overflow": false,
+      "viewport": 1085,
+      "width": 1100
+    },
+    {
+      "page": "classes",
+      "content": 1085,
+      "overflow": false,
+      "viewport": 1085,
+      "width": 1100
+    },
+    {
+      "page": "class/4",
+      "content": 1085,
+      "overflow": false,
+      "viewport": 1085,
+      "width": 1100
+    },
+    {
+      "page": "students",
+      "content": 1085,
+      "overflow": false,
+      "viewport": 1085,
+      "width": 1100
+    },
+    {
+      "page": "teachers",
+      "content": 1085,
+      "overflow": false,
+      "viewport": 1085,
+      "width": 1100
+    },
+    {
+      "page": "payroll",
+      "content": 1085,
+      "overflow": false,
+      "viewport": 1085,
+      "width": 1100
+    },
+    {
+      "page": "finance",
+      "content": 1085,
+      "overflow": false,
+      "viewport": 1085,
+      "width": 1100
+    },
+    {
+      "page": "accounts",
+      "content": 1085,
+      "overflow": false,
+      "viewport": 1085,
+      "width": 1100
+    },
+    {
+      "page": "tools",
+      "content": 1085,
+      "overflow": false,
+      "viewport": 1085,
+      "width": 1100
+    },
+    {
+      "page": "login",
+      "content": 1100,
+      "overflow": false,
+      "viewport": 1100,
+      "width": 1100
+    },
+    {
+      "page": "overview",
+      "content": 1425,
+      "overflow": false,
+      "viewport": 1425,
+      "width": 1440
+    },
+    {
+      "page": "schedule",
+      "content": 1425,
+      "overflow": false,
+      "viewport": 1425,
+      "width": 1440
+    },
+    {
+      "page": "classes",
+      "content": 1425,
+      "overflow": false,
+      "viewport": 1425,
+      "width": 1440
+    },
+    {
+      "page": "class/4",
+      "content": 1425,
+      "overflow": false,
+      "viewport": 1425,
+      "width": 1440
+    },
+    {
+      "page": "students",
+      "content": 1425,
+      "overflow": false,
+      "viewport": 1425,
+      "width": 1440
+    },
+    {
+      "page": "teachers",
+      "content": 1425,
+      "overflow": false,
+      "viewport": 1425,
+      "width": 1440
+    },
+    {
+      "page": "payroll",
+      "content": 1425,
+      "overflow": false,
+      "viewport": 1425,
+      "width": 1440
+    },
+    {
+      "page": "finance",
+      "content": 1425,
+      "overflow": false,
+      "viewport": 1425,
+      "width": 1440
+    },
+    {
+      "page": "accounts",
+      "content": 1425,
+      "overflow": false,
+      "viewport": 1425,
+      "width": 1440
+    },
+    {
+      "page": "tools",
+      "content": 1425,
+      "overflow": false,
+      "viewport": 1425,
+      "width": 1440
+    },
+    {
+      "page": "login",
+      "content": 1440,
+      "overflow": false,
+      "viewport": 1440,
+      "width": 1440
+    },
+    {
+      "page": "overview",
+      "content": 305,
+      "overflow": false,
+      "viewport": 305,
+      "width": 320
+    },
+    {
+      "page": "schedule",
+      "content": 305,
+      "overflow": false,
+      "viewport": 305,
+      "width": 320
+    },
+    {
+      "page": "classes",
+      "content": 305,
+      "overflow": false,
+      "viewport": 305,
+      "width": 320
+    },
+    {
+      "page": "class/4",
+      "content": 305,
+      "overflow": false,
+      "viewport": 305,
+      "width": 320
+    },
+    {
+      "page": "students",
+      "content": 305,
+      "overflow": false,
+      "viewport": 305,
+      "width": 320
+    },
+    {
+      "page": "teachers",
+      "content": 305,
+      "overflow": false,
+      "viewport": 305,
+      "width": 320
+    },
+    {
+      "page": "payroll",
+      "content": 305,
+      "overflow": false,
+      "viewport": 305,
+      "width": 320
+    },
+    {
+      "page": "finance",
+      "content": 305,
+      "overflow": false,
+      "viewport": 305,
+      "width": 320
+    },
+    {
+      "page": "accounts",
+      "content": 305,
+      "overflow": false,
+      "viewport": 305,
+      "width": 320
+    },
+    {
+      "page": "tools",
+      "content": 305,
+      "overflow": false,
+      "viewport": 305,
+      "width": 320
+    },
+    {
+      "page": "login",
+      "content": 305,
+      "overflow": false,
+      "viewport": 305,
+      "width": 320
+    }
+  ],
+  "colors": [
+    {
+      "page": "overview",
+      "width": 320,
+      "checked": 81,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "schedule",
+      "width": 320,
+      "checked": 97,
+      "failures": [],
+      "minimum": 5.15,
+      "theme": "light"
+    },
+    {
+      "page": "classes",
+      "width": 320,
+      "checked": 94,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "class/4",
+      "width": 320,
+      "checked": 74,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "students",
+      "width": 320,
+      "checked": 137,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "teachers",
+      "width": 320,
+      "checked": 74,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "payroll",
+      "width": 320,
+      "checked": 95,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "finance",
+      "width": 320,
+      "checked": 56,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "accounts",
+      "width": 320,
+      "checked": 60,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "tools",
+      "width": 320,
+      "checked": 29,
+      "failures": [],
+      "minimum": 3.83,
+      "theme": "light"
+    },
+    {
+      "page": "login",
+      "width": 320,
+      "checked": 13,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "overview",
+      "width": 390,
+      "checked": 81,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "schedule",
+      "width": 390,
+      "checked": 97,
+      "failures": [],
+      "minimum": 5.15,
+      "theme": "light"
+    },
+    {
+      "page": "classes",
+      "width": 390,
+      "checked": 94,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "class/4",
+      "width": 390,
+      "checked": 74,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "students",
+      "width": 390,
+      "checked": 137,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "teachers",
+      "width": 390,
+      "checked": 74,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "payroll",
+      "width": 390,
+      "checked": 95,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "finance",
+      "width": 390,
+      "checked": 56,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "accounts",
+      "width": 390,
+      "checked": 60,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "tools",
+      "width": 390,
+      "checked": 29,
+      "failures": [],
+      "minimum": 3.83,
+      "theme": "light"
+    },
+    {
+      "page": "login",
+      "width": 390,
+      "checked": 13,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "overview",
+      "width": 768,
+      "checked": 90,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "schedule",
+      "width": 768,
+      "checked": 101,
+      "failures": [],
+      "minimum": 5.15,
+      "theme": "light"
+    },
+    {
+      "page": "classes",
+      "width": 768,
+      "checked": 97,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "class/4",
+      "width": 768,
+      "checked": 87,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "students",
+      "width": 768,
+      "checked": 144,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "teachers",
+      "width": 768,
+      "checked": 77,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "payroll",
+      "width": 768,
+      "checked": 98,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "finance",
+      "width": 768,
+      "checked": 63,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "accounts",
+      "width": 768,
+      "checked": 66,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "tools",
+      "width": 768,
+      "checked": 32,
+      "failures": [],
+      "minimum": 3.83,
+      "theme": "light"
+    },
+    {
+      "page": "login",
+      "width": 768,
+      "checked": 13,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "overview",
+      "width": 1100,
+      "checked": 105,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "schedule",
+      "width": 1100,
+      "checked": 114,
+      "failures": [],
+      "minimum": 5.15,
+      "theme": "light"
+    },
+    {
+      "page": "classes",
+      "width": 1100,
+      "checked": 110,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "class/4",
+      "width": 1100,
+      "checked": 101,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "students",
+      "width": 1100,
+      "checked": 157,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "teachers",
+      "width": 1100,
+      "checked": 90,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "payroll",
+      "width": 1100,
+      "checked": 110,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "finance",
+      "width": 1100,
+      "checked": 76,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "accounts",
+      "width": 1100,
+      "checked": 80,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "tools",
+      "width": 1100,
+      "checked": 46,
+      "failures": [],
+      "minimum": 3.83,
+      "theme": "light"
+    },
+    {
+      "page": "login",
+      "width": 1100,
+      "checked": 13,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "overview",
+      "width": 1440,
+      "checked": 105,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "schedule",
+      "width": 1440,
+      "checked": 114,
+      "failures": [],
+      "minimum": 5.15,
+      "theme": "light"
+    },
+    {
+      "page": "classes",
+      "width": 1440,
+      "checked": 110,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "class/4",
+      "width": 1440,
+      "checked": 101,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "students",
+      "width": 1440,
+      "checked": 157,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "teachers",
+      "width": 1440,
+      "checked": 90,
+      "failures": [],
+      "minimum": 5.46,
+      "theme": "light"
+    },
+    {
+      "page": "payroll",
+      "width": 1440,
+      "checked": 110,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "finance",
+      "width": 1440,
+      "checked": 76,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "accounts",
+      "width": 1440,
+      "checked": 80,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "tools",
+      "width": 1440,
+      "checked": 46,
+      "failures": [],
+      "minimum": 3.83,
+      "theme": "light"
+    },
+    {
+      "page": "login",
+      "width": 1440,
+      "checked": 13,
+      "failures": [],
+      "minimum": 5.16,
+      "theme": "light"
+    },
+    {
+      "page": "overview",
+      "width": 1440,
+      "checked": 105,
+      "failures": [],
+      "minimum": 7.2,
+      "theme": "dark"
+    },
+    {
+      "page": "schedule",
+      "width": 1440,
+      "checked": 114,
+      "failures": [],
+      "minimum": 5.72,
+      "theme": "dark"
+    },
+    {
+      "page": "classes",
+      "width": 1440,
+      "checked": 110,
+      "failures": [],
+      "minimum": 7.77,
+      "theme": "dark"
+    },
+    {
+      "page": "class/4",
+      "width": 1440,
+      "checked": 101,
+      "failures": [],
+      "minimum": 7.12,
+      "theme": "dark"
+    },
+    {
+      "page": "students",
+      "width": 1440,
+      "checked": 157,
+      "failures": [],
+      "minimum": 7.12,
+      "theme": "dark"
+    },
+    {
+      "page": "teachers",
+      "width": 1440,
+      "checked": 90,
+      "failures": [],
+      "minimum": 7.2,
+      "theme": "dark"
+    },
+    {
+      "page": "payroll",
+      "width": 1440,
+      "checked": 110,
+      "failures": [],
+      "minimum": 7.12,
+      "theme": "dark"
+    },
+    {
+      "page": "finance",
+      "width": 1440,
+      "checked": 76,
+      "failures": [],
+      "minimum": 7.12,
+      "theme": "dark"
+    },
+    {
+      "page": "accounts",
+      "width": 1440,
+      "checked": 80,
+      "failures": [],
+      "minimum": 7.12,
+      "theme": "dark"
+    },
+    {
+      "page": "tools",
+      "width": 1440,
+      "checked": 46,
+      "failures": [],
+      "minimum": 4.91,
+      "theme": "dark"
+    },
+    {
+      "page": "login",
+      "width": 1440,
+      "checked": 13,
+      "failures": [],
+      "minimum": 7.12,
+      "theme": "dark"
+    }
+  ],
+  "browserErrors": []
+}
