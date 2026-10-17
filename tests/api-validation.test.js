@@ -21,6 +21,10 @@ test('production API requires login for CRUD and rejects foreign origins', async
   }
   const foreign = await fetch(`${base}/api/students`, { method: 'POST', headers: { Origin: 'https://other.example', 'Content-Type': 'application/json' }, body: '{}' });
   assert.equal(foreign.status, 403);
+  const quizHost = await fetch(`${base}/api/quiz/rooms`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  assert.equal(quizHost.status, 401);
+  const foreignPlayer = await fetch(`${base}/api/play/123456/join`, { method: 'POST', headers: { Origin: 'https://other.example', 'Content-Type': 'application/json' }, body: '{"name":"Test"}' });
+  assert.equal(foreignPlayer.status, 403);
   const missing = await fetch(`${base}/api/does-not-exist`);
   assert.equal(missing.status, 401); assert.match(missing.headers.get('content-type'), /json/);
 });

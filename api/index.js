@@ -9,6 +9,7 @@ import mysql from 'mysql2';
 import { databaseConfig } from '../server/database-config.js';
 import { registerAccounts, createTeacherAccount } from '../server/accounts.js';
 import { registerPersonalAttendance } from '../server/personal-attendance.js';
+import { createQuizService } from '../server/quiz.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +19,7 @@ const app = express();
 // const PORT = process.env.PORT || 5000;
 
 app.disable('x-powered-by');
+app.use('/api/quiz/rooms', express.json({ limit: '192kb' }));
 app.use(express.json({ limit: '64kb' }));
 app.use('/api', (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -170,7 +172,10 @@ function initDb() {
 }
 
 // ---------------- DASHBOARD STATS ----------------
+const quiz = createQuizService(pool);
+quiz.registerPublic(app);
 registerAccounts(app, pool);
+quiz.registerHost(app);
 registerPersonalAttendance(app, pool);
 registerTeachingSessions(app, pool);
 

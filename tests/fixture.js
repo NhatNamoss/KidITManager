@@ -6,11 +6,13 @@ import { registerAccounts, hashPassword } from '../server/accounts.js';
 import { registerPersonalAttendance } from '../server/personal-attendance.js';
 import { createTeacherAccount } from '../server/accounts.js';
 import { randomUUID } from 'node:crypto';
+import { createQuizService } from '../server/quiz.js';
 
-export function createFixture({ auth = false } = {}) {
+export function createFixture({ auth = false, quizNow = Date.now } = {}) {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(`
     PRAGMA foreign_keys=ON;
+    CREATE TABLE quiz_rooms (code TEXT PRIMARY KEY, owner_id INTEGER, state TEXT, version INTEGER DEFAULT 0, expires_at INTEGER);
     CREATE TABLE classes (id INTEGER PRIMARY KEY, name TEXT, teacher TEXT, ta TEXT, schedule TEXT, room TEXT, capacity INTEGER);
     CREATE TABLE teachers (id INTEGER PRIMARY KEY, name TEXT, role INTEGER, phone TEXT);
     CREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT, phone TEXT, parentName TEXT, parentPhone TEXT);
@@ -47,7 +49,9 @@ export function createFixture({ auth = false } = {}) {
     release() {}
   };
   const pool = { promise: () => ({ query: connection.query, getConnection: async () => connection }) };
-  const app = express(); app.use(express.json());
+  const app = express(); app.use(express.json({ limit: '192kb' }));
+  const quiz = createQuizService(pool, { now: quizNow });
+  quiz.registerPublic(app);
   if (auth) {
     for (const [username, role, teacher] of [['admin', 'admin', null], ['gv1', 'teacher', 1], ['gv2', 'teacher', 2]]) {
       sqlite.prepare('INSERT INTO accounts (username,password_hash,account_role,teacher_id) VALUES (?,?,?,?)').run(username, hashPassword(role === 'admin' ? 'admin' : 'kidit'), role, teacher);
@@ -55,6 +59,7 @@ export function createFixture({ auth = false } = {}) {
     registerAccounts(app, pool);
     registerPersonalAttendance(app, pool);
   }
+  quiz.registerHost(app);
   app.get('/api/classes', async (req, res) => res.json((await connection.query('SELECT * FROM classes'))[0]));
   app.get('/api/classes/:id', async (req, res) => res.json((await connection.query('SELECT * FROM classes WHERE id=?', [Number(req.params.id)]))[0][0]));
   app.put('/api/classes/:id', async (req, res) => {

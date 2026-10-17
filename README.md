@@ -63,7 +63,7 @@ Có thể sửa/hủy công cá nhân của mình; không xóa cứng công. Phi
 
 ## Công cụ hỗ trợ giảng dạy
 
-Vào **Công cụ hỗ trợ** (`/tools`) từ menu. Các công cụ không cần thêm bảng database:
+Vào **Công cụ trên lớp** (`/tools`) từ menu. Bốn công cụ cá nhân dưới đây không cần thêm bảng database:
 
 - **Đếm ngược giờ:** nhập phút/giây hoặc dùng mốc nhanh, bắt đầu/tạm dừng/tiếp tục, đặt lại, cộng thêm một phút, chuông và thông báo hết giờ. Có chế độ phóng to trong trang và popup riêng (`/tools/timer`). Popup đồng bộ cùng bộ đếm với trang chính trên cùng trình duyệt; trình duyệt cần cho phép cửa sổ bật lên. Đồng hồ vẫn giữ mốc kết thúc khi chuyển trang hoặc tải lại, kèm chỉ báo ở đầu trang. Có nút thử chuông; tại popup có thể nhấn thử chuông để bật âm thanh cho cửa sổ đó.
 - **Bốc thăm học sinh:** nhập mỗi tên một dòng hoặc lấy từ danh sách lớp. Có chế độ không gọi lặp lại và bắt đầu lượt mới. Tên từ lớp kèm mã học sinh để phân biệt người trùng tên.
@@ -71,6 +71,12 @@ Vào **Công cụ hỗ trợ** (`/tools`) từ menu. Các công cụ không cầ
 - **Bảng điểm thi đua:** đổi tên, thêm/bỏ đội, cộng/trừ điểm, đưa điểm về 0; có thể xem thành viên nếu tạo từ nhóm.
 
 Danh sách nhập và bảng điểm được lưu trên trình duyệt, không lưu vào database trung tâm. Lịch sử bốc thăm và kết quả chia nhóm giữ trong trang đang mở. Mỗi trình duyệt có dữ liệu công cụ riêng.
+
+## Đấu trường trắc nghiệm nhiều máy
+
+Vào **Công cụ trên lớp → Đấu trường trắc nghiệm** để tạo phòng, soạn câu hỏi và chia đội. Học sinh mở `/play`, nhập mã phòng và tên trên máy riêng; không cần tài khoản giáo viên. Có đóng băng, cầu lửa, lá chắn và bảng điểm theo đội.
+
+Trước khi dùng trên hosting, chạy `npm run db:migrate:quiz` trên database của môi trường đó để thêm bảng phòng. Bản sửa này không tự chạy migration trong API. Hướng dẫn và giới hạn: [docs/QUIZ-ARENA.md](docs/QUIZ-ARENA.md).
 
 ## Đưa bản sửa lên Vercel
 

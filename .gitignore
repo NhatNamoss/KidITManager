@@ -31,4 +31,6 @@ outputs/
 *.njsproj
 *.sln
 *.sw?
-docs
+docs/*
+!docs/QUIZ-ARENA.md
+!docs/QUIZ-QA.md

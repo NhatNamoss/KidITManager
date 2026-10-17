@@ -5,8 +5,9 @@ import { api } from '../lib/api';
 import { useToolStorage } from '../lib/useToolStorage';
 import { makeGroups, parseNames } from '../../shared/teaching-tools';
 import './TeachingTools.css';
+import { QuizHost } from '../quiz/QuizHost';
 
-const TOOLS = [ ['timer', 'Đếm ngược giờ'], ['picker', 'Bốc thăm học sinh'], ['groups', 'Chia nhóm'], ['scores', 'Bảng điểm thi đua'] ];
+const TOOLS = [ ['timer', 'Đếm ngược giờ'], ['picker', 'Bốc thăm học sinh'], ['groups', 'Chia nhóm'], ['scores', 'Bảng điểm thi đua'], ['quiz', 'Đấu trường trắc nghiệm'] ];
 const newTeam = (name, members = []) => ({ id: crypto.randomUUID(), name, score: 0, members });
 const validRoster = value => value && typeof value.text === 'string' && value.text.length <= 20000 && typeof value.classId === 'string';
 const validTeams = value => Array.isArray(value) && value.length >= 1 && value.length <= 10 && new Set(value.map(t => t?.id)).size === value.length && value.every(team => team && typeof team.id === 'string' && typeof team.name === 'string' && team.name.length <= 80 && Number.isInteger(team.score) && Math.abs(team.score) <= 999 && Array.isArray(team.members) && team.members.every(m => typeof m === 'string'));
@@ -99,7 +100,7 @@ export function TeachingTools() {
   const [roster, setRoster, rosterSaved] = useToolStorage('kidit-tools-roster-v1', () => ({ classId: '', text: '' }), validRoster);
   const [teams, setTeams, scoresSaved] = useToolStorage('kidit-tools-scores-v1', () => [newTeam('Đội 1'), newTeam('Đội 2')], validTeams);
   const names = useMemo(() => parseNames(roster.text), [roster.text]);
-  return <div className="teaching-tools"><div className="page-header"><h1 className="text-h1">Công cụ trên lớp</h1><p className="text-muted mt-2">Các công cụ dùng ngay trong buổi dạy. Đồng hồ và dữ liệu công cụ được lưu trên trình duyệt này.</p></div>
+  return <div className="teaching-tools"><div className="page-header"><h1 className="text-h1">Công cụ trên lớp</h1><p className="text-muted mt-2">Dùng ngay trong buổi dạy. Công cụ cá nhân lưu trên trình duyệt; phòng đấu trắc nghiệm được đồng bộ qua máy chủ.</p></div>
     <nav className="tools-navigation" aria-label="Chọn công cụ hỗ trợ">{TOOLS.map(([key, label]) => <button key={key} aria-pressed={active === key} onClick={() => setActive(key)}>{label}</button>)}</nav>
     {(!rosterSaved || !scoresSaved) && <p role="status" className="tool-error">Trình duyệt không lưu được dữ liệu công cụ. Bạn vẫn sử dụng được trong trang đang mở.</p>}
     <div hidden={active !== 'timer'} className="tools-panel"><CountdownTimer /></div>
@@ -107,6 +108,7 @@ export function TeachingTools() {
     <div hidden={active !== 'picker'}><NamePicker names={names} /></div>
     <div hidden={active !== 'groups'}><GroupMaker names={names} onUseTeams={groups => { setTeams(groups.map((members, i) => newTeam(`Nhóm ${i + 1}`, members))); setActive('scores'); }} /></div>
     <div hidden={active !== 'scores'}><Scoreboard teams={teams} setTeams={setTeams} /></div>
+    {active === 'quiz' && <QuizHost />}
   </div>;
 }
 
