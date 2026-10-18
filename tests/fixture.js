@@ -16,6 +16,7 @@ export function createFixture({ auth = false, quizNow = Date.now } = {}) {
     CREATE TABLE quiz_rooms (code TEXT PRIMARY KEY, owner_id INTEGER, state TEXT, version INTEGER DEFAULT 0, expires_at INTEGER);
     CREATE TABLE classes (id INTEGER PRIMARY KEY, name TEXT, teacher TEXT, ta TEXT, schedule TEXT, room TEXT, capacity INTEGER);
     CREATE TABLE class_slot_staff (class_id INTEGER REFERENCES classes(id) ON DELETE CASCADE, slot TEXT, teacher TEXT, ta TEXT, PRIMARY KEY(class_id,slot));
+    CREATE TABLE class_slot_people (class_id INTEGER REFERENCES classes(id) ON DELETE CASCADE, slot TEXT, position INTEGER, name TEXT, role TEXT, PRIMARY KEY(class_id,slot,position));
     CREATE TABLE teachers (id INTEGER PRIMARY KEY, name TEXT, role INTEGER, phone TEXT);
     CREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT, phone TEXT, parentName TEXT, parentPhone TEXT);
     CREATE TABLE class_students (id INTEGER PRIMARY KEY, class_id INTEGER REFERENCES classes(id), student_id INTEGER REFERENCES students(id));

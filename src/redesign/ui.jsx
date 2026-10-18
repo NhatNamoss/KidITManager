@@ -40,17 +40,28 @@ export function EditDialog({ model, close }) {
           {f.help && <small>{f.help}</small>}</label>)}</div>}
         {model.scheduleEditor && <fieldset className="class-schedule-editor">
           <legend>Lịch học và phân công theo suất</legend>
-          <p className="muted">Mỗi suất có giáo viên và trợ giảng riêng. Để trống nhân sự nếu chưa phân công.</p>
+          <p className="muted">Thêm từng người và chọn vai trò trong suất này. Một suất có thể có nhiều giáo viên hoặc trợ giảng. Vai trò được chọn chỉ áp dụng cho suất này.</p>
           {values.scheduleRows.map((row, index) => {
             const update = patch => setField({ key: 'scheduleRows' }, values.scheduleRows.map((s, i) => i === index ? { ...s, ...patch } : s));
             return <div className="schedule-editor-row" key={index}>
               <label>Thứ<select aria-label={`Thứ của suất ${index + 1}`} value={row.day} onChange={e => update({ day: Number(e.target.value) })}>{SCHEDULE_DAYS.map(day => <option key={day} value={day}>{WEEKDAYS[day]}</option>)}</select></label>
               <label>Suất học<select aria-label={`Giờ của suất ${index + 1}`} value={row.time} onChange={e => update({ time: e.target.value })}>{[...new Set([...TIME_SLOTS, row.time])].sort().map(time => <option key={time} value={time}>{time.replace('-', ' - ')}</option>)}</select></label>
-              {['teacher', 'ta'].map(key => <label key={key}>{key === 'teacher' ? 'Giáo viên' : 'Trợ giảng'}<select aria-label={`${key === 'teacher' ? 'Giáo viên' : 'Trợ giảng'} của suất ${index + 1}`} value={row[key] || ''} onChange={e => update({ [key]: e.target.value })}>{model.staffOptions(row[key]).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></label>)}
+              <div className="slot-people">
+                {row.staff.map((person, personIndex) => {
+                  const updatePerson = patch => update({ staff: row.staff.map((p, i) => i === personIndex ? { ...p, ...patch } : p) });
+                  return <div className="slot-person" key={personIndex}>
+                    <label>Nhân sự {personIndex + 1}<select aria-label={`Nhân sự ${personIndex + 1} của suất ${index + 1}`} value={person.name} onChange={e => updatePerson({ name: e.target.value })}><option value="">Chọn nhân sự</option>{model.staffOptions(person.name).filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></label>
+                    <label>Vai trò trong suất<select aria-label={`Vai trò nhân sự ${personIndex + 1} của suất ${index + 1}`} value={person.role} onChange={e => updatePerson({ role: e.target.value })}><option value="teacher">Giáo viên</option><option value="ta">Trợ giảng</option></select></label>
+                    <Button variant="ghost" onClick={() => update({ staff: row.staff.filter((_, i) => i !== personIndex) })}>Bỏ người {personIndex + 1} khỏi suất {index + 1}</Button>
+                  </div>;
+                })}
+                {!row.staff.length && <p className="muted">Chưa phân công nhân sự.</p>}
+                <Button variant="secondary" disabled={row.staff.length >= 20} onClick={() => update({ staff: [...row.staff, { name: '', role: 'teacher' }] })}>Thêm nhân sự cho suất {index + 1}</Button>
+              </div>
               <Button variant="ghost" onClick={() => setField({ key: 'scheduleRows' }, values.scheduleRows.filter((_, i) => i !== index))}>Bỏ suất {index + 1}</Button>
             </div>;
           })}
-          <Button variant="secondary" icon={Plus} onClick={() => setField({ key: 'scheduleRows' }, [...values.scheduleRows, { day: 1, time: '15:15-17:15', teacher: '', ta: '' }])}>Thêm suất học</Button>
+          <Button variant="secondary" icon={Plus} onClick={() => setField({ key: 'scheduleRows' }, [...values.scheduleRows, { day: 1, time: '15:15-17:15', staff: [] }])}>Thêm suất học</Button>
         </fieldset>}
       </fieldset>
       {error && <div className="error-note" role="alert"><Icon icon={CircleAlert} />{error}</div>}

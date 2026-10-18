@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createFixture } from './fixture.js';
 import { classSlots, classPayload, buildScheduleBlocks, classStaff } from '../src/redesign/schedule.js';
+import { validateScheduleRows, staffSummary } from '../src/redesign/schedule.js';
 
 async function setup(t) {
   const fixture = createFixture();
@@ -63,4 +64,56 @@ test('invalid assignments roll back and removed slots do not resurrect old assig
   assert.deepEqual((await request('/classes/1')).data.slot_staff, [original.slot_staff[1]]);
   assert.equal((await request('/classes/1', { schedule: original.schedule })).status, 200);
   assert.equal(classSlots((await request('/classes/1')).data)[0].ta, original.ta);
+});
+
+test('multiple teachers and assistants keep their per-slot roles through save, reload and partial edits', async t => {
+  const { request } = await setup(t);
+  const staff = [{ name: 'GV kiểm thử A', role: 'teacher' }, { name: 'GV kiểm thử B', role: 'teacher' }, { name: 'GV dạy thay C', role: 'ta' }];
+  const body = classPayload({ name: 'KID 3', scheduleRows: [
+    { day: 1, time: '15:15-17:15', staff },
+    { day: 3, time: '15:15-17:15', staff: [{ name: 'GV kiểm thử B', role: 'ta' }] },
+  ] });
+  assert.equal((await request('/classes/1', body)).status, 200);
+  let saved = (await request('/classes/1')).data;
+  assert.deepEqual(classSlots(saved)[0].staff, staff);
+  assert.equal(classSlots(saved)[0].teacher, 'GV kiểm thử A, GV kiểm thử B');
+  assert.equal(classSlots(saved)[1].ta, 'GV kiểm thử B');
+  assert.equal(staffSummary(saved, 'teacher'), 'GV kiểm thử A, GV kiểm thử B');
+  assert.equal(classStaff(saved).some(s => s.teacher === 'GV kiểm thử B'), true);
+  const blocks = buildScheduleBlocks([saved], name => name);
+  assert.equal(blocks[0].teacher, 'GV kiểm thử A, GV kiểm thử B');
+  assert.equal(blocks.filter(b => b.staff.some(p => p.name === 'GV kiểm thử B')).length, 2);
+  assert.equal((await request('/classes/1', { room: '2' })).status, 200);
+  saved = (await request('/classes/1')).data;
+  assert.deepEqual(classSlots(saved)[0].staff, staff);
+  saved.slot_staff[0].staff[1].role = 'ta';
+  assert.equal((await request('/classes/1', saved)).status, 200);
+  saved = (await request('/classes/1')).data;
+  assert.equal(classSlots(saved)[0].teacher, 'GV kiểm thử A');
+  assert.equal(classSlots(saved)[0].ta, 'GV kiểm thử B, GV dạy thay C');
+  assert.deepEqual(classSlots(saved)[1].staff, [{ name: 'GV kiểm thử B', role: 'ta' }]);
+  saved.slot_staff[0].staff = [];
+  assert.equal((await request('/classes/1', saved)).status, 200);
+  assert.deepEqual(classSlots((await request('/classes/1')).data)[0].staff, []);
+});
+
+test('invalid or duplicate per-slot people are rejected before updating the class', async t => {
+  const { request } = await setup(t);
+  const body = payload();
+  const slot = body.slot_staff[0].slot;
+  for (const staff of [null, {}, [{ name: '', role: 'teacher' }], [{ name: 'A', role: 'admin' }], [{ name: 'A', role: 'teacher' }, { name: ' A ', role: 'ta' }], Array.from({ length: 21 }, (_, i) => ({ name: `GV ${i}`, role: 'teacher' }))]) {
+    assert.equal((await request('/classes/1', { ...body, slot_staff: [{ slot, staff }] })).status, 400);
+    assert.equal((await request('/classes/1')).data.name, 'Lớp kiểm thử');
+  }
+  assert.match(validateScheduleRows([{ day: 1, time: '15:15-17:15', staff: [{ name: 'A', role: 'teacher' }, { name: 'A', role: 'ta' }] }]), /một lần/);
+});
+
+test('person write failure rolls back the class, previous slots and assigned roles together', async t => {
+  const { request, sqlite } = await setup(t);
+  await request('/classes/1', payload());
+  const original = (await request('/classes/1')).data;
+  sqlite.exec("CREATE TRIGGER fail_people BEFORE INSERT ON class_slot_people BEGIN SELECT RAISE(FAIL, 'injected failure'); END;");
+  const body = classPayload({ name: 'Không được lưu', scheduleRows: [{ day: 1, time: '15:15-17:15', staff: [{ name: 'A', role: 'teacher' }, { name: 'B', role: 'teacher' }] }] });
+  assert.equal((await request('/classes/1', body)).status, 500);
+  assert.deepEqual((await request('/classes/1')).data, original);
 });

@@ -8,6 +8,18 @@ export function validateSlotStaff(staff, schedule) {
   return staff.map(row => {
     if (!row || !slots.some(s => s.label === row.slot) || used.has(row.slot)) throw new InputError('Suất phân công không có trong lịch hoặc bị trùng.');
     used.add(row.slot);
+    if (row.staff !== undefined) {
+      if (!Array.isArray(row.staff) || row.staff.length > 20) throw new InputError('Mỗi suất được phân công tối đa 20 người.');
+      const names = new Set();
+      const people = row.staff.map(person => {
+        if (!person || typeof person.name !== 'string' || !person.name.trim() || person.name.length > 255 || !['teacher', 'ta'].includes(person.role)) throw new InputError('Hãy chọn nhân sự và vai trò giáo viên hoặc trợ giảng.');
+        const name = person.name.trim();
+        if (names.has(name)) throw new InputError('Một người chỉ được phân công một lần trong cùng suất.');
+        names.add(name);
+        return { name, role: person.role };
+      });
+      return { slot: row.slot, teacher: people.find(p => p.role === 'teacher')?.name || '', ta: people.find(p => p.role === 'ta')?.name || '', staff: people };
+    }
     for (const key of ['teacher', 'ta']) {
       if (typeof row[key] !== 'string' || row[key].length > 255) throw new InputError('Tên nhân sự không hợp lệ.');
     }
@@ -17,9 +29,17 @@ export function validateSlotStaff(staff, schedule) {
 
 export function registerClasses(app, pool) {
   const db = pool.promise();
+  const loadStaff = async (connection, classId) => {
+    const [staff] = await connection.query(`SELECT * FROM class_slot_staff${classId ? ' WHERE class_id=?' : ''}`, classId ? [classId] : []);
+    const [people] = await connection.query(`SELECT * FROM class_slot_people${classId ? ' WHERE class_id=?' : ''} ORDER BY position`, classId ? [classId] : []);
+    return staff.map(row => {
+      const assigned = people.filter(p => p.class_id === row.class_id && p.slot === row.slot).map(({ name, role }) => ({ name, role }));
+      return { ...row, ...(assigned.length ? { staff: assigned } : {}) };
+    });
+  };
   const withStaff = async rows => {
-    const [staff] = await db.query('SELECT * FROM class_slot_staff');
-    return rows.map(row => ({ ...row, slot_staff: staff.filter(s => s.class_id === row.id).map(({ slot, teacher, ta }) => ({ slot, teacher, ta })) }));
+    const staff = await loadStaff(db);
+    return rows.map(row => ({ ...row, slot_staff: staff.filter(s => s.class_id === row.id).map(({ class_id: _classId, ...assignment }) => assignment) }));
   };
   app.get('/api/classes', async (req, res) => {
     const [rows] = await db.query('SELECT c.*, COUNT(cs.student_id) AS enrolledCount FROM classes c LEFT JOIN class_students cs ON c.id=cs.class_id GROUP BY c.id');
@@ -50,7 +70,7 @@ export function registerClasses(app, pool) {
       let staff;
       if (value.slot_staff !== undefined) staff = validateSlotStaff(value.slot_staff, value.schedule);
       else if (req.params.id) {
-        const [saved] = await connection.query('SELECT slot,teacher,ta FROM class_slot_staff WHERE class_id=?', [req.params.id]);
+        const saved = await loadStaff(connection, req.params.id);
         staff = saved.filter(s => scheduleSlots(value.schedule).some(slot => slot.label === s.slot));
       } else staff = [];
       const params = [value.name.trim(), value.teacher, value.ta, value.schedule, value.room, capacity];
@@ -61,7 +81,11 @@ export function registerClasses(app, pool) {
         id = result.insertId;
       }
       await connection.query('DELETE FROM class_slot_staff WHERE class_id=?', [id]);
-      for (const row of staff) await connection.query('INSERT INTO class_slot_staff (class_id,slot,teacher,ta) VALUES (?,?,?,?)', [id, row.slot, row.teacher, row.ta]);
+      await connection.query('DELETE FROM class_slot_people WHERE class_id=?', [id]);
+      for (const row of staff) {
+        await connection.query('INSERT INTO class_slot_staff (class_id,slot,teacher,ta) VALUES (?,?,?,?)', [id, row.slot, row.teacher, row.ta]);
+        for (const [position, person] of (row.staff || []).entries()) await connection.query('INSERT INTO class_slot_people (class_id,slot,position,name,role) VALUES (?,?,?,?,?)', [id, row.slot, position, person.name, person.role]);
+      }
       await connection.commit();
       res.json(req.params.id ? { success: true } : { id });
     } catch (error) { if (connection) await connection.rollback(); next(error); }

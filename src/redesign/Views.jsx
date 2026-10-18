@@ -38,7 +38,7 @@ export function Dashboard() {
 export function Schedule() {
   const d=useCenter(); const [teacher,setTeacher]=useState(''); const [view,setView]=useState('grid'); const [exporting,setExporting]=useState('');const [error,setError]=useState('');const [exported,setExported]=useState({});
   const [targets]=useState(()=>({parents:{current:null},teachers:{current:null}}));
-  const blocks=buildScheduleBlocks(d.classes,d.person);const visible=blocks.filter(b=>!teacher||b.teacher===d.person(Number(teacher))||b.ta===d.person(Number(teacher)));
+  const blocks=buildScheduleBlocks(d.classes,d.person);const visible=blocks.filter(b=>!teacher||b.staff.some(p=>p.name===d.person(Number(teacher))));
   const slots=[...new Set([...TIME_SLOTS,...blocks.map(b=>b.timeKey)])].sort();
   const exportImage=async(staff=false)=>{if(exporting)return;setExporting(staff?'teachers':'parents');setError('');try{
     const target=staff?targets.teachers.current:targets.parents.current;await document.fonts.ready;await Promise.all(Array.from(target.querySelectorAll('img')).map(img=>img.decode()));
