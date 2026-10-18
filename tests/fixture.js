@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import express from 'express';
+import { registerClasses } from '../server/classes.js';
 import { registerTeachingSessions } from '../server/teaching-sessions.js';
 import { registerStudentAttendance } from '../server/student-attendance.js';
 import { registerAccounts, hashPassword } from '../server/accounts.js';
@@ -14,6 +15,7 @@ export function createFixture({ auth = false, quizNow = Date.now } = {}) {
     PRAGMA foreign_keys=ON;
     CREATE TABLE quiz_rooms (code TEXT PRIMARY KEY, owner_id INTEGER, state TEXT, version INTEGER DEFAULT 0, expires_at INTEGER);
     CREATE TABLE classes (id INTEGER PRIMARY KEY, name TEXT, teacher TEXT, ta TEXT, schedule TEXT, room TEXT, capacity INTEGER);
+    CREATE TABLE class_slot_staff (class_id INTEGER REFERENCES classes(id) ON DELETE CASCADE, slot TEXT, teacher TEXT, ta TEXT, PRIMARY KEY(class_id,slot));
     CREATE TABLE teachers (id INTEGER PRIMARY KEY, name TEXT, role INTEGER, phone TEXT);
     CREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT, phone TEXT, parentName TEXT, parentPhone TEXT);
     CREATE TABLE class_students (id INTEGER PRIMARY KEY, class_id INTEGER REFERENCES classes(id), student_id INTEGER REFERENCES students(id));
@@ -60,22 +62,14 @@ export function createFixture({ auth = false, quizNow = Date.now } = {}) {
     registerPersonalAttendance(app, pool);
   }
   quiz.registerHost(app);
-  app.get('/api/classes', async (req, res) => res.json((await connection.query('SELECT * FROM classes'))[0]));
-  app.get('/api/classes/:id', async (req, res) => res.json((await connection.query('SELECT * FROM classes WHERE id=?', [Number(req.params.id)]))[0][0]));
-  app.put('/api/classes/:id', async (req, res) => {
-    const { name, teacher, ta, schedule, room, capacity } = req.body;
-    const [[current]] = await connection.query('SELECT * FROM classes WHERE id=?',[Number(req.params.id)]);
-    await connection.query('UPDATE classes SET name=COALESCE(?,name),teacher=COALESCE(?,teacher),ta=COALESCE(?,ta),schedule=?,room=COALESCE(?,room),capacity=? WHERE id=?',
-      [name ?? null, teacher ?? null, ta ?? null, schedule, room ?? null, capacity === undefined ? current?.capacity ?? null : capacity, Number(req.params.id)]);
-    res.json({ success: true });
-  });
+  registerClasses(app, pool);
   app.get('/api/teachers', async (req, res) => res.json((await connection.query('SELECT t.*,a.username FROM teachers t LEFT JOIN accounts a ON a.teacher_id=t.id'))[0]));
   app.get('/api/students', async (req, res) => res.json((await connection.query('SELECT * FROM students'))[0]));
   app.get('/api/classes/:id/students', async (req, res) => res.json((await connection.query('SELECT s.* FROM students s JOIN class_students cs ON cs.student_id=s.id WHERE cs.class_id=?', [Number(req.params.id)]))[0]));
   app.get('/api/invoices', async (req,res) => res.json((await connection.query('SELECT i.*,s.name AS student_name FROM invoices i JOIN students s ON s.id=i.student_id'))[0]));
   app.post('/api/students',async(req,res)=>{const {name,phone='',parentName='',parentPhone=''}=req.body;const [result]=await connection.query('INSERT INTO students (name,phone,parentName,parentPhone) VALUES (?,?,?,?)',[name,phone,parentName,parentPhone]);res.json({id:result.insertId});});
   app.put('/api/students/:id',async(req,res)=>{const {name,phone='',parentName='',parentPhone=''}=req.body;await connection.query('UPDATE students SET name=?,phone=?,parentName=?,parentPhone=? WHERE id=?',[name,phone,parentName,parentPhone,req.params.id]);res.json({success:true});});
-  app.post('/api/classes',async(req,res)=>{const {name,teacher='',ta='',schedule='',room='',capacity=null}=req.body;const [result]=await connection.query('INSERT INTO classes (name,teacher,ta,schedule,room,capacity) VALUES (?,?,?,?,?,?)',[name,teacher,ta,schedule,room,capacity]);res.json({id:result.insertId});});
+
   app.post('/api/teachers',async(req,res)=>{const {name,role,phone=''}=req.body;await connection.beginTransaction();try{const [result]=await connection.query('INSERT INTO teachers (name,role,phone) VALUES (?,?,?)',[name,Number(role),phone]);const username=await createTeacherAccount(connection,result.insertId,name);await connection.commit();res.json({id:result.insertId,username});}catch(error){await connection.rollback();throw error;}});
   app.put('/api/teachers/:id',async(req,res)=>{const {name,role,phone=''}=req.body;await connection.query('UPDATE teachers SET name=?,role=?,phone=? WHERE id=?',[name,Number(role),phone,req.params.id]);res.json({success:true});});
   app.delete('/api/teachers/:id',async(req,res)=>{await connection.query('DELETE FROM teachers WHERE id=?',[req.params.id]);res.json({success:true});});

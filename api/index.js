@@ -1,4 +1,5 @@
 import express from 'express';
+import { registerClasses } from '../server/classes.js';
 import { randomUUID } from 'node:crypto';
 import { registerTeachingSessions } from '../server/teaching-sessions.js';
 import { registerStudentAttendance } from '../server/student-attendance.js';
@@ -251,50 +252,7 @@ app.put('/api/students/:id', (req, res) => {
 });
 
 // ---------------- CLASSES ----------------
-app.get('/api/classes', (req, res) => {
-  const sql = `
-    SELECT c.*, COUNT(cs.student_id) as enrolledCount 
-    FROM classes c
-    LEFT JOIN class_students cs ON c.id = cs.class_id
-    GROUP BY c.id
-  `;
-  db.all(sql, [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
-});
-
-app.get('/api/classes/:id', (req, res) => {
-  db.get('SELECT * FROM classes WHERE id = ?', [req.params.id], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (!row) return res.status(404).json({ error: 'Not found' });
-    res.json(row);
-  });
-});
-
-app.post('/api/classes', (req, res) => {
-  const { name, teacher, ta, schedule, room } = req.body;
-  const capacity = req.body.capacity === '' || req.body.capacity == null ? null : Number(req.body.capacity);
-  db.run(`INSERT INTO classes (name, teacher, ta, schedule, room, capacity) VALUES (?, ?, ?, ?, ?, ?)`,
-    [name, teacher, ta, schedule, room, capacity],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: this.lastID });
-    }
-  );
-});
-
-app.put('/api/classes/:id', (req, res) => {
-  const { name, teacher, ta, schedule, room } = req.body;
-  const capacity = req.body.capacity === '' || req.body.capacity == null ? null : Number(req.body.capacity);
-  db.run(`UPDATE classes SET name = ?, teacher = ?, ta = ?, schedule = ?, room = ?, capacity = ? WHERE id = ?`,
-    [name, teacher, ta, schedule, room, capacity, req.params.id],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ success: true });
-    }
-  );
-});
+registerClasses(app, pool);
 
 // ---------------- TEACHERS ----------------
 app.get('/api/teachers', (req, res) => {

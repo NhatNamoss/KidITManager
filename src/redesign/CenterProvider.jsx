@@ -106,9 +106,8 @@ export function CenterProvider({ children }) {
     await refreshCore(); notify('Đã lưu hồ sơ học sinh.');
   } });
   const staffOptions = value => [{ value: '', label: 'Chưa phân công' }, ...teachers.map(t => ({ value: t.name, label: `${t.name} (${t.role === 2 ? 'TG' : 'GV'})` })), ...(value && !teachers.some(t => t.name === value) ? [{ value, label: `${value} (phân công đã lưu)` }] : [])];
-  const classEditor = record => open({ title: record ? 'Sửa thông tin lớp' : 'Tạo lớp học', initial: { ...(record || { name: '', teacher: '', ta: '', room: '' }), capacity: record?.capacity || '', scheduleRows: record ? classSlots(record).map(s => ({ day: s.day, time: s.key })) : [{ day: 1, time: '15:15-17:15' }] }, wide: true, scheduleEditor: true, fields: [
+  const classEditor = record => open({ title: record ? 'Sửa thông tin lớp' : 'Tạo lớp học', initial: { ...(record || { name: '', teacher: '', ta: '', room: '' }), capacity: record?.capacity || '', scheduleRows: record ? classSlots(record).map(s => ({ day: s.day, time: s.key, teacher: s.teacher, ta: s.ta })) : [{ day: 1, time: '15:15-17:15', teacher: '', ta: '' }] }, wide: true, scheduleEditor: true, staffOptions, fields: [
     { key: 'name', label: 'Tên lớp', required: true, full: true, placeholder: 'Ví dụ: KID 1' },
-    { key: 'teacher', label: 'Giáo viên phụ trách', type: 'select', options: staffOptions(record?.teacher) }, { key: 'ta', label: 'Trợ giảng', type: 'select', options: staffOptions(record?.ta) },
     { key: 'room', label: 'Phòng học' }, { key: 'capacity', label: 'Sĩ số tối đa', type: 'number', min: 1, help: 'Để trống nếu không đặt giới hạn.' },
   ], validate: values => validateScheduleRows(values.scheduleRows, { allowEmpty: true }), save: async values => {
     await requestSave(`/api/classes${record ? `/${record.id}` : ''}`, classPayload(values), record ? 'PUT' : 'POST');

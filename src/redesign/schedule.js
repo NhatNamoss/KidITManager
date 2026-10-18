@@ -5,6 +5,7 @@ export const TIME_SLOTS = ['07:00-09:00', '09:00-11:00', '15:15-17:15', '17:15-1
 
 export function classSlots(cls, date) {
   return scheduleSlots(cls?.schedule || '', date).map(slot => ({
+    ...(cls?.slot_staff?.find(row => row.slot === slot.label) || { teacher: cls?.teacher || '', ta: cls?.ta || '' }),
     day: WEEKDAYS.findIndex(day => slot.label.startsWith(`${day} (`)),
     start: slot.start_time, end: slot.end_time,
     key: `${slot.start_time}-${slot.end_time}`, label: slot.label,
@@ -13,6 +14,15 @@ export function classSlots(cls, date) {
 
 export function scheduleText(rows) {
   return rows.map(row => `${WEEKDAYS[Number(row.day)]} (${row.time.replace('-', ' - ')})`).join(', ');
+}
+
+export function classStaff(cls) {
+  const slots = classSlots(cls);
+  return slots.length ? slots : [{ teacher: cls.teacher || '', ta: cls.ta || '' }];
+}
+
+export function staffSummary(cls, role) {
+  return [...new Set(classStaff(cls).map(s => s[role]).filter(Boolean))].join(', ');
 }
 
 export function validateScheduleRows(rows, { allowEmpty = false } = {}) {
@@ -30,13 +40,13 @@ export function validateScheduleRows(rows, { allowEmpty = false } = {}) {
 }
 
 export function classPayload(values) {
-  return { name: values.name.trim(), teacher: values.teacher || '', ta: values.ta || '', schedule: scheduleText(values.scheduleRows), room: values.room || '', capacity: values.capacity == null || values.capacity === '' ? null : Number(values.capacity) };
+  return { name: values.name.trim(), teacher: values.teacher || '', ta: values.ta || '', schedule: scheduleText(values.scheduleRows), slot_staff: values.scheduleRows.map(row => ({ slot: scheduleText([row]), teacher: row.teacher ?? values.teacher ?? '', ta: row.ta ?? values.ta ?? '' })), room: values.room || '', capacity: values.capacity == null || values.capacity === '' ? null : Number(values.capacity) };
 }
 
 export function buildScheduleBlocks(classes, person) {
   return classes.flatMap(cls => classSlots(cls).map(slot => ({
     id: `${cls.id}-${slot.day}-${slot.key}`, classId: cls.id, className: cls.name,
-    teacher: person(cls.teacher), ta: cls.ta ? person(cls.ta) : '', room: cls.room,
+    teacher: person(slot.teacher), ta: slot.ta ? person(slot.ta) : '', room: cls.room,
     day: WEEKDAYS[slot.day], dayIndex: slot.day, timeKey: slot.key,
   })));
 }

@@ -5,7 +5,7 @@ import { createTeacherAccount, hashPassword } from '../server/accounts.js';
 
 const db = await mysql.createConnection({ ...databaseConfig, connectTimeout: 10000 });
 try {
-  for (const file of ['001-teaching-sessions.sql', '002-personal-accounts.sql', '003-quiz-rooms.sql']) {
+  for (const file of ['001-teaching-sessions.sql', '002-personal-accounts.sql', '003-quiz-rooms.sql', '004-class-slot-staff.sql']) {
     const sql = await readFile(new URL(`../migrations/${file}`, import.meta.url), 'utf8');
     for (const statement of sql.split(';').map(s => s.trim()).filter(Boolean)) await db.query(statement);
   }
