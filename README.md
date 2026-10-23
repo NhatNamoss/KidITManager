@@ -71,6 +71,9 @@ Có thể sửa/hủy hoặc **Xóa buổi** chấm nhầm của mình. Xóa có
 
 ## Xuất thời khóa biểu
 
+- Admin mở trang **Lịch dạy** sẽ thấy chế độ **Theo ngày**: nhập ngày/tháng/năm bằng ba ô riêng, dùng **Ngày trước**, **Hôm nay**, **Ngày sau** để chuyển lịch. Bảng chỉ hiện các lớp có lịch theo thứ của ngày được chọn, nhóm theo giờ và kèm giáo viên, trợ giảng, phòng học. Lọc người dạy áp dụng cho ngày đang xem.
+- Ngày nhập sai/thiếu không hiển thị lịch và khóa nút lùi/tiến; nút Hôm nay giúp chọn lại. Điều hướng qua cuối tháng/năm và năm nhuận theo ngày lịch thực tế. Chuyển **Cả tuần** rồi quay về **Theo ngày** giữ ngày đang xem trong trang. Tài khoản giáo viên vẫn dùng lịch tuần.
+
 - **Xuất ảnh**: giữ bản lịch học chỉ có tên lớp như trước.
 - **Xuất TKB cho GV**: xuất thêm giáo viên (GV) và trợ giảng (TG) theo phân công mặc định của từng lớp. Các lớp trùng ca được tách rõ, người chưa được phân công có thông báo tương ứng. Tên file có thêm `GV_` để phân biệt.
 

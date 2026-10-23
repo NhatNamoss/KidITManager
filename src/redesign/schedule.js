@@ -1,8 +1,22 @@
-import { scheduleSlots, WEEKDAYS } from '../../shared/class-schedule.js';
+import { isCalendarDate, scheduleSlots, WEEKDAYS } from '../../shared/class-schedule.js';
 import { slotPeople, staffNames } from '../../shared/class-staff.js';
 
 export const SCHEDULE_DAYS = [1, 2, 3, 4, 5, 6, 0];
 export const TIME_SLOTS = ['07:00-09:00', '09:00-11:00', '15:15-17:15', '17:15-19:15', '19:15-21:15'];
+
+export function shiftScheduleDate(date, days) {
+  if (!isCalendarDate(date) || !Number.isInteger(days)) return '';
+  const next = new Date(`${date}T12:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + days);
+  if (Number.isNaN(next.getTime()) || next.getUTCFullYear() < 1000 || next.getUTCFullYear() > 9999) return '';
+  return next.toISOString().slice(0, 10);
+}
+
+export function scheduleBlocksOnDate(blocks, date) {
+  if (!isCalendarDate(date)) return [];
+  const day = new Date(`${date}T12:00:00Z`).getUTCDay();
+  return blocks.filter(block => block.dayIndex === day).sort((a, b) => a.timeKey.localeCompare(b.timeKey) || a.className.localeCompare(b.className, 'vi', { numeric: true }));
+}
 
 export function classSlots(cls, date) {
   return scheduleSlots(cls?.schedule || '', date).map(slot => {
