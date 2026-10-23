@@ -1,4 +1,5 @@
 import { InputError, validateSession, monthRange } from './session-domain.js';
+import { staffingCounts, withSessionPay } from '../shared/payroll.js';
 
 export function registerTeachingSessions(app, pool) {
   const db = pool.promise();
@@ -66,10 +67,17 @@ export function registerTeachingSessions(app, pool) {
       let personal = [];
       let entries = [];
       if (req.user) {
-        [personal] = await db.query(`SELECT a.teacher_id,a.teacher_name,a.role,1 AS work_units,CONCAT('personal-',a.id) AS session_id,a.class_id,c.name AS class_name,a.date,a.start_time,a.end_time,a.notes,a.lesson,a.slot FROM personal_attendance a JOIN classes c ON c.id=a.class_id WHERE a.status='completed' AND a.date>=? AND a.date<? ORDER BY a.date,a.start_time,a.teacher_name`, [from, to]);
-        [entries] = await db.query('SELECT a.*,c.name AS class_name FROM personal_attendance a JOIN classes c ON c.id=a.class_id WHERE a.date>=? AND a.date<? ORDER BY a.date,a.start_time,a.teacher_name', [from, to]);
+        [entries] = await db.query('SELECT a.*,c.name AS class_name,p.teacher_count,p.ta_count FROM personal_attendance a JOIN classes c ON c.id=a.class_id LEFT JOIN attendance_payroll p ON p.attendance_id=a.id WHERE a.date>=? AND a.date<? ORDER BY a.date,a.start_time,a.teacher_name', [from, to]);
+        entries = entries.map(withSessionPay);
+        personal = entries.filter(row => row.status === 'completed').map(row => ({ ...row, session_id: `personal-${row.id}`, work_units: 1 }));
       }
-      const combined = [...rows, ...personal].sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time) || a.teacher_name.localeCompare(b.teacher_name, 'vi'));
+      const counts = new Map();
+      for (const row of rows) {
+        const staff = counts.get(row.session_id) || [];
+        staff.push(row); counts.set(row.session_id, staff);
+      }
+      const historic = rows.map(row => withSessionPay({ ...row, status: 'completed', ...staffingCounts(counts.get(row.session_id)) }));
+      const combined = [...historic, ...personal].sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time) || a.teacher_name.localeCompare(b.teacher_name, 'vi'));
       res.json({ basis: 'session', rows: combined, legacy, entries });
     } catch (error) { next(error); }
   });

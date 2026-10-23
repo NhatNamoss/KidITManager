@@ -29,16 +29,18 @@ export function createFixture({ auth = false, quizNow = Date.now } = {}) {
     CREATE TABLE account_sessions (token_hash TEXT PRIMARY KEY, account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE, expires_at TEXT);
     CREATE TABLE personal_attendance (id INTEGER PRIMARY KEY AUTOINCREMENT,teacher_id INTEGER REFERENCES teachers(id),teacher_name TEXT,class_id INTEGER REFERENCES classes(id),date TEXT,start_time TEXT,end_time TEXT,slot TEXT,lesson TEXT,role TEXT,status TEXT,notes TEXT,version INTEGER DEFAULT 1,UNIQUE(teacher_id,class_id,date,start_time,end_time));
     CREATE TABLE invoices (id INTEGER PRIMARY KEY AUTOINCREMENT,invoice_code TEXT UNIQUE,student_id INTEGER REFERENCES students(id),amount INTEGER,status TEXT,createdAt TEXT DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE attendance_payroll (attendance_id INTEGER PRIMARY KEY REFERENCES personal_attendance(id) ON DELETE CASCADE,teacher_count INTEGER NOT NULL,ta_count INTEGER NOT NULL);
     INSERT INTO classes VALUES (1,'Lớp kiểm thử','GV kiểm thử A','GV kiểm thử B','Thứ 5 (15:15 - 17:15)','1',10);
     INSERT INTO teachers VALUES (1,'GV kiểm thử A',1,''),(2,'GV kiểm thử B',2,''),(3,'GV dạy thay C',1,'');
     INSERT INTO students VALUES (1,'Học sinh kiểm thử','','','');
     INSERT INTO class_students VALUES (1,1,1);
     INSERT INTO teacher_attendance VALUES (1,1,'GV kiểm thử A','teacher','2026-10-01','present');
   `);
-  const state = { failRevision: false, failAttendanceStudent: null };
+  const state = { failRevision: false, failAttendanceStudent: null, failPayroll: false };
   const connection = {
     async query(sql, params = []) {
       if (state.failRevision && sql.startsWith('INSERT INTO session_revisions')) throw new Error('injected failure');
+      if (state.failPayroll && sql.startsWith('INSERT INTO attendance_payroll')) throw new Error('injected payroll failure');
       if (state.failAttendanceStudent && sql.startsWith('INSERT INTO attendance') && Number(params[1]) === state.failAttendanceStudent) throw new Error('injected attendance failure');
       params = params.map(p => p instanceof Date ? p.toISOString().slice(0, 19).replace('T', ' ') : p);
       const statement = sqlite.prepare(sql.replaceAll(' FOR UPDATE', '').replace("CONCAT('personal-',a.id)", "('personal-' || a.id)").replace(/ON DUPLICATE KEY UPDATE status = VALUES\(status\)/, 'ON CONFLICT(class_id, student_id, date) DO UPDATE SET status=excluded.status'));

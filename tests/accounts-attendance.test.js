@@ -16,7 +16,82 @@ async function serve(t) {
   const login = async (username, password = 'kidit') => (await request('/auth/login', { username, password })).cookie;
   return { ...fixture, request, login };
 }
-const entry = (patch = {}) => ({ date: '2026-10-01', start_time: '15:15', end_time: '17:15', slot: 'Thứ 5 (15:15 - 17:15)', lesson: 'Lập trình vòng lặp', role: 'teacher', status: 'completed', notes: '', version: 0, ...patch });
+const entry = (patch = {}) => ({ date: '2026-10-01', start_time: '15:15', end_time: '17:15', slot: 'Thứ 5 (15:15 - 17:15)', lesson: 'Lập trình vòng lặp', role: 'teacher', teacher_count: 1, ta_count: 1, status: 'completed', notes: '', version: 0, ...patch });
+
+test('API calculates all staffing arrangements and ignores client-supplied money', async t => {
+  const { request, login } = await serve(t);
+  const cookie = await login('gv1');
+  const saved = await request('/classes/1/personal-attendance', entry(), cookie);
+  const path = `/classes/1/personal-attendance/${saved.data.id}`;
+  let version = 1;
+  for (const [teacher_count, ta_count, expected] of [[1, 0, 187500], [2, 0, 187500], [1, 1, 125000], [2, 1, 187500]]) {
+    assert.equal((await request(path, entry({ teacher_count, ta_count, pay_amount: 999999999, pay_rate: 999999999, version: version++ }), cookie, 'PUT')).status, 200);
+    assert.equal((await request('/payroll?month=2026-10', null, cookie)).data.rows[0].pay_amount, expected);
+  }
+  assert.equal((await request(path, entry({ status: 'cancelled', version: version++ }), cookie, 'PUT')).status, 200);
+  const report = (await request('/payroll?month=2026-10', null, cookie)).data;
+  assert.equal(report.rows.length, 0);
+  assert.equal(report.entries[0].pay_amount, 0);
+  for (const patch of [{ teacher_count: '2' }, { teacher_count: 1.5 }, { teacher_count: null }, { teacher_count: 20, ta_count: 1 }, { role: 'ta', ta_count: 0 }]) assert.equal((await request(path, entry({ version, ...patch }), cookie, 'PUT')).status, 400);
+});
+
+test('a salary snapshot failure rolls back both new attendance and edits', async t => {
+  const { request, login, sqlite, state } = await serve(t);
+  const cookie = await login('gv1');
+  state.failPayroll = true;
+  assert.equal((await request('/classes/1/personal-attendance', entry(), cookie)).status, 500);
+  assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM personal_attendance').get().n, 0);
+  state.failPayroll = false;
+  const saved = await request('/classes/1/personal-attendance', entry(), cookie);
+  state.failPayroll = true;
+  assert.equal((await request(`/classes/1/personal-attendance/${saved.data.id}`, entry({ teacher_count: 2, lesson: 'Must roll back', version: 1 }), cookie, 'PUT')).status, 500);
+  const report = (await request('/payroll?month=2026-10', null, cookie)).data;
+  assert.equal(report.rows[0].pay_amount, 125000);
+  assert.equal(report.rows[0].version, 1);
+  assert.equal(report.rows[0].lesson, 'Lập trình vòng lặp');
+});
+
+test('payroll snapshots actual staffing, separates drafts, keeps missing historic data explicit', async t => {
+  const { request, login, sqlite } = await serve(t);
+  const cookie = await login('gv1');
+  const saved = await request('/classes/1/personal-attendance', entry({ teacher_count: 2 }), cookie);
+  assert.equal(saved.status, 200);
+  let report = (await request('/payroll?month=2026-10', null, cookie)).data;
+  assert.equal(report.rows[0].pay_amount, 187500);
+  sqlite.prepare('UPDATE classes SET ta=? WHERE id=1').run('');
+  assert.equal((await request('/payroll?month=2026-10', null, cookie)).data.rows[0].pay_amount, 187500);
+  const path = `/classes/1/personal-attendance/${saved.data.id}`;
+  assert.equal((await request(path, entry({ status: 'draft', version: 1 }), cookie, 'PUT')).status, 200);
+  report = (await request('/payroll?month=2026-10', null, cookie)).data;
+  assert.equal(report.rows.length, 0);
+  assert.equal(report.entries[0].pay_amount, 125000);
+  assert.equal((await request('/classes/1/personal-attendance', entry({ date: '2026-10-08', teacher_count: 0 }), cookie)).status, 400);
+  sqlite.exec('DELETE FROM attendance_payroll');
+  assert.equal((await request('/payroll?month=2026-10', null, cookie)).data.entries[0].pay_amount, null);
+});
+
+test('delete checks ownership and version, removes salary, and allows correcting the same shift', async t => {
+  const { request, login, sqlite } = await serve(t);
+  const a = await login('gv1'), b = await login('gv2'), admin = await login('admin', 'admin');
+  const saved = await request('/classes/1/personal-attendance', entry(), a);
+  const other = await request('/classes/1/personal-attendance', entry({ role: 'ta' }), b);
+  const path = `/classes/1/personal-attendance/${saved.data.id}`;
+  assert.equal((await request(path, { version: 1 }, '', 'DELETE')).status, 401);
+  assert.equal((await request(path, { version: 1 }, b, 'DELETE')).status, 403);
+  assert.equal((await request(path, { version: 1 }, admin, 'DELETE')).status, 403);
+  assert.equal((await request(path, {}, a, 'DELETE')).status, 400);
+  assert.equal((await request('/classes/2/personal-attendance/'+saved.data.id, { version: 1 }, a, 'DELETE')).status, 404);
+  assert.equal((await request(path, entry({ version: 1 }), a, 'PUT')).status, 200);
+  assert.equal((await request(path, { version: 1 }, a, 'DELETE')).status, 409);
+  assert.equal((await request(path, { version: 2 }, a, 'DELETE')).status, 200);
+  assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM attendance_payroll WHERE attendance_id=?').get(saved.data.id).n, 0);
+  const report = (await request('/payroll?month=2026-10', null, a)).data;
+  assert.equal(report.rows.length, 1);
+  assert.equal(report.rows[0].id, other.data.id);
+  assert.equal(report.rows[0].pay_amount, 62500);
+  assert.equal((await request(path, { version: 2 }, a, 'DELETE')).status, 404);
+  assert.equal((await request('/classes/1/personal-attendance', entry(), a)).status, 200);
+});
 
 test('Vietnamese login names, salted password hashes and schedule choices', async () => {
   assert.equal(usernameFromName('Nguyễn Đăng Phát'), 'nguyendangphat');

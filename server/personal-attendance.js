@@ -1,5 +1,6 @@
 import { InputError, validateSession } from './session-domain.js';
 import { scheduleSlots } from '../shared/class-schedule.js';
+import { validStaffing, withSessionPay } from '../shared/payroll.js';
 
 export function registerPersonalAttendance(app, pool) {
   const db = pool.promise();
@@ -9,15 +10,16 @@ export function registerPersonalAttendance(app, pool) {
   });
   app.get('/api/classes/:id/personal-attendance', async (req, res, next) => {
     try {
-      const [rows] = await db.query('SELECT * FROM personal_attendance WHERE class_id=? ORDER BY date DESC,start_time DESC,teacher_name', [req.params.id]);
-      res.json(rows);
+      const [rows] = await db.query('SELECT a.*,p.teacher_count,p.ta_count FROM personal_attendance a LEFT JOIN attendance_payroll p ON p.attendance_id=a.id WHERE a.class_id=? ORDER BY a.date DESC,a.start_time DESC,a.teacher_name', [req.params.id]);
+      res.json(rows.map(withSessionPay));
     } catch (error) { next(error); }
   });
   const save = async (req, res, next) => {
     let connection;
     try {
       if (!req.user?.teacher_id) throw new InputError('Tài khoản admin chỉ xem tổng công. Hãy đăng nhập tài khoản giáo viên để tự chấm công.', 403);
-      const { lesson, slot, role, ...body } = req.body || {};
+      const { lesson, slot, role, teacher_count, ta_count, ...body } = req.body || {};
+      if (!validStaffing(teacher_count, ta_count, role)) throw new InputError('Hãy chọn đội hình thực tế: ít nhất 1 giáo viên, tối đa 20 người và có trợ giảng nếu bạn chọn vai trò trợ giảng.');
       if (typeof lesson !== 'string' || !lesson.trim() || lesson.length > 255) throw new InputError('Hãy nhập tên bài học, tối đa 255 ký tự.');
       const input = validateSession({ ...body, staff: [{ teacher_id: req.user.teacher_id, role }] });
       connection = await db.getConnection(); await connection.beginTransaction();
@@ -45,9 +47,26 @@ export function registerPersonalAttendance(app, pool) {
         const [result] = await connection.query('INSERT INTO personal_attendance (teacher_name,date,start_time,end_time,slot,lesson,role,status,notes,teacher_id,class_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)', [...values, teacher.id, cls.id]);
         id = result.insertId;
       }
+      await connection.query('DELETE FROM attendance_payroll WHERE attendance_id=?', [id]);
+      await connection.query('INSERT INTO attendance_payroll (attendance_id,teacher_count,ta_count) VALUES (?,?,?)', [id, teacher_count, ta_count]);
       await connection.commit(); res.json({ id, success: true });
     } catch (error) { if (connection) await connection.rollback(); next(error); } finally { connection?.release(); }
   };
   app.post('/api/classes/:id/personal-attendance', save);
   app.put('/api/classes/:id/personal-attendance/:entryId', save);
+  app.delete('/api/classes/:id/personal-attendance/:entryId', async (req, res, next) => {
+    let connection;
+    try {
+      if (!req.user?.teacher_id) throw new InputError('Bạn chỉ được xóa công của mình bằng tài khoản giáo viên.', 403);
+      const version = req.body?.version;
+      if (!Number.isInteger(version) || version < 1) throw new InputError('Thiếu phiên bản bản ghi. Hãy tải lại trước khi xóa.');
+      connection = await db.getConnection(); await connection.beginTransaction();
+      const [[existing]] = await connection.query('SELECT * FROM personal_attendance WHERE id=? AND class_id=? FOR UPDATE', [req.params.entryId, req.params.id]);
+      if (!existing) throw new InputError('Không tìm thấy lượt chấm công.', 404);
+      if (existing.teacher_id !== req.user.teacher_id) throw new InputError('Bạn chỉ được xóa công của mình.', 403);
+      if (existing.version !== version) throw new InputError('Dữ liệu vừa thay đổi. Hãy tải lại trước khi xóa.', 409);
+      await connection.query('DELETE FROM personal_attendance WHERE id=?', [existing.id]);
+      await connection.commit(); res.json({ success: true });
+    } catch (error) { if (connection) await connection.rollback(); next(error); } finally { connection?.release(); }
+  });
 }

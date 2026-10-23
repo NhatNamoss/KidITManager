@@ -41,7 +41,7 @@ test('whole-class attendance rolls back every row if a student write fails',asyn
 });
 test('payroll returns draft personal records without counting them as completed work',async t=>{
   const {request}=await serve(t);
-  await request('/classes/1/personal-attendance',{date:'2026-10-01',start_time:'15:15',end_time:'17:15',slot:'Thứ 5 (15:15 - 17:15)',lesson:'Bài kiểm thử',role:'teacher',status:'draft',notes:'',version:0});
+  await request('/classes/1/personal-attendance',{date:'2026-10-01',start_time:'15:15',end_time:'17:15',slot:'Thứ 5 (15:15 - 17:15)',lesson:'Bài kiểm thử',role:'teacher',teacher_count:1,ta_count:1,status:'draft',notes:'',version:0});
   const report=(await request('/payroll?month=2026-10')).data;assert.equal(report.rows.length,0);assert.equal(report.entries.length,1);
   const rows=normalizePayroll(report);assert.equal(rows[0].teacherId,1);assert.equal(rows[0].status,'draft');assert.equal(rows[0].entryId,1);
 });

@@ -32,11 +32,24 @@ Không bật `INIT_DB` trên Vercel. Migration là bước riêng trước khi t
 5. Chọn **Chưa xác nhận**, **Đã dạy, tính công**, hoặc **Đã hủy, không tính công**. Chỉ xác nhận sau giờ kết thúc theo giờ Việt Nam. Không hỗ trợ ca qua nửa đêm.
 6. Vào **Chấm công** để lọc tháng/nhân sự, đối chiếu từng buổi và xuất CSV mở bằng Excel.
 
-Số công được tính hoàn toàn theo buổi, không phụ thuộc thời lượng: dạy hai buổi được hai công. Giờ bắt đầu/kết thúc chỉ để phân biệt ca, kiểm tra trùng lịch và xác nhận buổi đã kết thúc. Bảng công và CSV đều dùng cột **Số công (buổi)**, không có cột phút/giờ công. Chưa tự quy đổi thành tiền lương vì chưa có đơn giá theo buổi/vai trò.
+Số công được tính theo buổi, không phụ thuộc thời lượng. Giờ bắt đầu/kết thúc dùng để phân biệt ca, kiểm tra trùng lịch và xác nhận buổi đã kết thúc. Tiền lương tính theo đội hình thực tế của suất, lưu riêng theo từng bản ghi cá nhân:
+
+| Đội hình | Mỗi giáo viên / buổi | Mỗi trợ giảng / buổi | Tổng chi phí / buổi |
+| --- | ---: | ---: | ---: |
+| 1 giáo viên | 1.500.000 / 8 = 187.500đ | 0đ | 187.500đ |
+| 2 giáo viên | 1.500.000 / 8 = 187.500đ | 0đ | 375.000đ |
+| 1 giáo viên + 1 trợ giảng | 1.000.000 / 8 = 125.000đ | 500.000 / 8 = 62.500đ | 187.500đ |
+| 2 giáo viên + 1 trợ giảng | 1.500.000 / 8 = 187.500đ | 500.000 / 8 = 62.500đ | 437.500đ |
+
+Form gợi ý đội hình từ phân công theo suất, cho phép sửa số người thực tế và xem lương cá nhân cùng tổng chi phí đội hình trước khi lưu. Đơn giá không phụ thuộc người khác đã tự chấm công hay chưa. Sửa lịch lớp không đổi đội hình đã lưu. Mỗi người phải đối chiếu đội hình của bản ghi mình với buổi thực tế. Với nhiều hơn 2 giáo viên, mỗi người dùng mức 187.500đ; mỗi trợ giảng dùng mức 62.500đ, tối đa 20 người/suất.
+
+Trang Chấm công và CSV hiển thị đội hình, đơn giá, tiền lương và trạng thái. Công đã xác nhận cộng vào lương đã xác nhận; công nháp chỉ cộng vào tiền dự kiến; công hủy nhận 0đ. Bản ghi cá nhân cũ chưa có đội hình vẫn tính số công, nhưng báo chưa đủ dữ liệu để tính lương, không âm thầm coi là lương 0đ. Người sở hữu mở **Sửa công** để bổ sung đội hình thực tế. Công từ hệ thống buổi dạy cũ tính theo danh sách nhân sự đã lưu cùng buổi.
+
+Trước khi triển khai code mới, chạy `npm run db:migrate:payroll` để tạo bảng `attendance_payroll`. Lệnh này chạy lại được, không sửa/xóa công cũ hay tài khoản. `npm run db:migrate` cũng bao gồm bảng này.
 
 Các buổi dạy cũ được giữ nguyên, chỉ đọc, và vẫn được cộng theo từng nhân sự nếu đã xác nhận. Điểm danh giáo viên cũ thiếu giờ tiếp tục hiển thị riêng để đối chiếu, không tự cộng công.
 
-Có thể sửa/hủy công cá nhân của mình; không xóa cứng công. Phiên bản bản ghi được kiểm tra khi lưu để tránh ghi đè từ tab cũ. Sau khi lịch lớp đổi, bản ghi cũ vẫn giữ suất đã ghi nhận và có thể sửa bài học, trạng thái; đổi ngày/suất phải theo lịch mới.
+Có thể sửa/hủy hoặc **Xóa buổi** chấm nhầm của mình. Xóa có hộp thoại xác nhận, xóa cả đội hình tính lương đi kèm, cập nhật tổng công/tiền và cho phép chấm lại cùng suất. Giáo viên khác và admin không được xóa hộ. Phiên bản bản ghi được kiểm tra cả khi sửa và xóa để chặn thao tác từ tab cũ. Sau khi lịch lớp đổi, bản ghi cũ vẫn giữ suất đã ghi nhận và có thể sửa bài học, trạng thái; đổi ngày/suất phải theo lịch mới.
 
 ## Quản lý tài khoản
 
